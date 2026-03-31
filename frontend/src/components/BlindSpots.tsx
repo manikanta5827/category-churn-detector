@@ -13,7 +13,7 @@ import type { BlindSpotItem } from "../types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, Target, TrendingUp, Users } from "lucide-react";
+import { AlertCircle, Target, TrendingUp, Users, DollarSign, Activity } from "lucide-react";
 
 interface ChartDataPoint {
   x: number;
@@ -37,13 +37,13 @@ const BlindSpots = () => {
 
   if (loading) {
     return (
-      <div className="space-y-4 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Skeleton className="h-24 w-full" />
-          <Skeleton className="h-24 w-full" />
+      <div className="space-y-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Skeleton className="h-32 w-full rounded-2xl" />
+          <Skeleton className="h-32 w-full rounded-2xl" />
         </div>
-        <Skeleton className="h-[400px] w-full" />
-        {[1, 2].map(i => <Skeleton key={i} className="h-32 w-full" />)}
+        <Skeleton className="h-[450px] w-full rounded-2xl" />
+        {[1, 2].map(i => <Skeleton key={i} className="h-36 w-full rounded-2xl" />)}
       </div>
     );
   }
@@ -73,23 +73,23 @@ const BlindSpots = () => {
     if (active && payload && payload.length) {
       const p = payload[0].payload;
       return (
-        <Card className="shadow-xl border-border bg-background/95 backdrop-blur-sm p-3 min-w-[200px]">
-          <div className="font-bold text-sm mb-2 border-b pb-1">{p.name}</div>
-          <div className="space-y-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Potential:</span>
-              <span className="font-medium">{p.x}</span>
+        <Card className="shadow-2xl border-primary/10 bg-card/90 backdrop-blur-xl p-4 min-w-[220px] rounded-2xl">
+          <div className="font-black text-sm mb-3 border-b border-primary/5 pb-2 uppercase tracking-tight">{p.name}</div>
+          <div className="space-y-2.5">
+            <div className="flex justify-between text-xs font-medium">
+              <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-black opacity-60">Potential</span>
+              <span className="font-bold text-sm">{p.x}</span>
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Attention:</span>
-              <span className="font-medium">{p.y}</span>
+            <div className="flex justify-between text-xs font-medium">
+              <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-black opacity-60">Attention</span>
+              <span className="font-bold text-sm">{p.y}</span>
             </div>
-            <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">Revenue:</span>
-              <span className="font-medium">${p.revenue.toLocaleString()}</span>
+            <div className="flex justify-between text-xs font-medium">
+              <span className="text-muted-foreground uppercase tracking-widest text-[10px] font-black opacity-60">Revenue</span>
+              <span className="font-bold text-sm">${p.revenue.toLocaleString()}</span>
             </div>
-            <div className="mt-2 pt-1 border-t">
-              <Badge variant={p.isBlindSpot ? "destructive" : "outline"} className="w-full justify-center text-[10px] h-5">
+            <div className="mt-4 pt-2 border-t border-primary/5">
+              <Badge variant={p.isBlindSpot ? "destructive" : "outline"} className="w-full justify-center text-[10px] font-black uppercase tracking-widest h-6 rounded-lg">
                 {getQuadrant(p.x, p.y)}
               </Badge>
             </div>
@@ -103,147 +103,181 @@ const BlindSpots = () => {
   const blindSpotsCount = data.filter((d) => d.isBlindSpot).length;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className={blindSpotsCount > 0 ? "border-destructive/50 bg-destructive/5" : ""}>
+    <div className="space-y-10 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className={`rounded-2xl border-primary/5 backdrop-blur-sm relative overflow-hidden transition-all duration-500 ${blindSpotsCount > 0 ? "border-destructive/30 bg-destructive/[0.03]" : "bg-card/50"}`}>
+          {blindSpotsCount > 0 && (
+            <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/10 rounded-full -mr-16 -mt-16 blur-3xl animate-pulse" />
+          )}
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardDescription className="text-xs uppercase font-semibold">Critical Blind Spots</CardDescription>
-            <AlertCircle className={`w-4 h-4 ${blindSpotsCount > 0 ? "text-destructive" : "text-muted-foreground"}`} />
+            <CardDescription className="text-[10px] uppercase font-black tracking-widest text-muted-foreground flex items-center gap-2">
+              <AlertCircle className={`w-3.5 h-3.5 ${blindSpotsCount > 0 ? "text-destructive" : ""}`} /> Critical Blind Spots
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className={`text-3xl font-bold ${blindSpotsCount > 0 ? "text-destructive" : ""}`}>{blindSpotsCount}</div>
-            <p className="text-xs text-muted-foreground mt-1">High potential buyers needing attention</p>
+            <div className={`text-4xl font-black ${blindSpotsCount > 0 ? "text-destructive" : ""}`}>{blindSpotsCount}</div>
+            <p className="text-xs font-medium text-muted-foreground mt-1.5 opacity-70">High-potential accounts currently neglected</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-2xl border-primary/5 bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardDescription className="text-xs uppercase font-semibold">Total Analysis Scope</CardDescription>
-            <Users className="w-4 h-4 text-muted-foreground" />
+            <CardDescription className="text-[10px] uppercase font-black tracking-widest text-muted-foreground flex items-center gap-2">
+              <Users className="w-3.5 h-3.5" /> Total Active Portfolio
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{data.length}</div>
-            <p className="text-xs text-muted-foreground mt-1">Total active buyer portfolio</p>
+            <div className="text-4xl font-black">{data.length}</div>
+            <p className="text-xs font-medium text-muted-foreground mt-1.5 opacity-70">Buyers analyzed across the matrix</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Target className="w-5 h-5 text-primary" />
-            Priority Matrix
-          </CardTitle>
-          <CardDescription>
-            Bubble size represents total revenue. Top-left quadrant (High Potential, Low Attention) indicates blind spots.
-          </CardDescription>
+      <Card className="overflow-hidden rounded-3xl border-primary/5 bg-card/40 backdrop-blur-md shadow-2xl">
+        <CardHeader className="border-b border-primary/5 pb-8 pt-8 px-8">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <CardTitle className="text-2xl font-black tracking-tight flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Target className="w-5 h-5 text-primary" />
+                </div>
+                Growth Matrix
+              </CardTitle>
+              <CardDescription className="font-medium text-sm">
+                Relationship depth vs. business potential. Circle size indicates annual revenue.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="h-[400px] w-full">
+        <CardContent className="p-8 pt-12">
+          <div className="h-[450px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/30" />
+              <ScatterChart margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted/20" vertical={false} />
                 <XAxis
                   type="number"
                   dataKey="x"
-                  name="Potential Score"
+                  name="Potential"
                   domain={[0, 100]}
-                  label={{ value: "Potential Score", position: "insideBottom", offset: -10, className: "fill-muted-foreground text-[10px] font-bold" }}
-                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  label={{ value: "BUSINESS POTENTIAL SCORE", position: "insideBottom", offset: -30, className: "fill-muted-foreground text-[9px] font-black tracking-[0.2em]" }}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: "oklch(var(--muted-foreground))" }}
                 />
                 <YAxis
                   type="number"
                   dataKey="y"
-                  name="Attention Score"
+                  name="Attention"
                   domain={[0, 100]}
-                  label={{ value: "Attention Score", angle: -90, position: "insideLeft", className: "fill-muted-foreground text-[10px] font-bold" }}
-                  tick={{ fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  label={{ value: "ATTENTION SCORE", angle: -90, position: "insideLeft", className: "fill-muted-foreground text-[9px] font-black tracking-[0.2em]" }}
+                  tick={{ fontSize: 10, fontWeight: 700, fill: "oklch(var(--muted-foreground))" }}
                 />
-                <ReferenceLine x={50} className="stroke-muted-foreground/50" strokeDasharray="5 5" />
-                <ReferenceLine y={50} className="stroke-muted-foreground/50" strokeDasharray="5 5" />
-                <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: "3 3" }} />
+                <ReferenceLine x={50} className="stroke-muted/30" strokeDasharray="6 6" />
+                <ReferenceLine y={50} className="stroke-muted/30" strokeDasharray="6 6" />
+                <Tooltip content={<CustomTooltip />} cursor={{ strokeDasharray: "3 3", strokeOpacity: 0.2 }} />
                 <Scatter
                   data={chartData}
                   fill="var(--primary)"
                   shape={(props: any) => {
                     const { cx, cy, payload } = props;
                     const p = payload as ChartDataPoint;
-                    const size = Math.max(6, Math.min(25, p.revenue / 500));
+                    const size = Math.max(8, Math.min(30, p.revenue / 400));
                     const color = p.isBlindSpot
-                      ? "oklch(0.577 0.245 27.325)" // destructive
+                      ? "oklch(0.6 0.2 25)" // primary destructive
                       : p.x > 50 && p.y > 50
-                        ? "oklch(0.627 0.194 149.214)" // healthy green
-                        : "oklch(0.708 0 0)"; // muted grey
+                        ? "oklch(0.65 0.15 150)" // healthy green
+                        : "oklch(0.5 0 0)"; // neutral
                     return (
-                      <circle
-                        cx={cx}
-                        cy={cy}
-                        r={size}
-                        fill={color}
-                        fillOpacity={0.7}
-                        stroke={color}
-                        strokeWidth={1}
-                      />
+                      <g className="filter drop-shadow-sm transition-all duration-300 hover:brightness-110 cursor-pointer">
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={size}
+                          fill={color}
+                          fillOpacity={0.6}
+                          stroke={color}
+                          strokeWidth={2}
+                          strokeOpacity={0.4}
+                        />
+                        <circle
+                          cx={cx}
+                          cy={cy}
+                          r={size * 0.4}
+                          fill={color}
+                          fillOpacity={0.8}
+                        />
+                      </g>
                     );
                   }}
                 />
               </ScatterChart>
             </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 px-4">
-            <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-muted-foreground">
-              <div className="w-2 h-2 rounded-full bg-destructive" /> Blind Spots
+          <div className="flex flex-wrap items-center justify-center gap-10 mt-6 pt-6 border-t border-primary/5">
+            <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <div className="w-3 h-3 rounded-full bg-destructive/60 border border-destructive/30" /> Blind Spots
             </div>
-            <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-muted-foreground">
-              <div className="w-2 h-2 rounded-full bg-green-500" /> Well Attended
+            <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <div className="w-3 h-3 rounded-full bg-green-500/60 border border-green-500/30" /> Strategic Accounts
             </div>
-            <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-muted-foreground">
-              <div className="w-2 h-2 rounded-full bg-muted-foreground" /> Other
+            <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              <div className="w-3 h-3 rounded-full bg-muted-foreground/40 border border-muted-foreground/20" /> Maintenance
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="space-y-4">
-        <h3 className="text-xl font-semibold px-1 flex items-center gap-2">
-          <TrendingUp className="w-5 h-5" />
-          Buyer Priority List
+      <div className="space-y-6">
+        <h3 className="text-2xl font-bold tracking-tight px-1 flex items-center gap-3">
+          <Activity className="w-6 h-6 text-primary" />
+          Strategic Priority List
         </h3>
         <div className="grid grid-cols-1 gap-4">
           {data.map((buyer) => (
-            <Card key={buyer.id} className={`transition-shadow hover:shadow-md ${buyer.isBlindSpot ? "border-l-4 border-l-destructive" : ""}`}>
-              <CardContent className="p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                      buyer.isBlindSpot ? "bg-destructive/10 text-destructive" : "bg-muted text-muted-foreground"
+            <Card key={buyer.id} className={`group overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-xl border-primary/5 bg-card/40 backdrop-blur-md ${buyer.isBlindSpot ? "border-l-4 border-l-destructive shadow-lg shadow-destructive/5" : ""}`}>
+              <CardContent className="p-7">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+                  <div className="flex items-center gap-5">
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 transition-transform group-hover:scale-105 ${
+                      buyer.isBlindSpot ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-muted text-muted-foreground"
                     }`}>
                       {buyer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
                     </div>
                     <div>
-                      <div className="font-semibold text-lg">{buyer.name}</div>
-                      <div className="text-sm text-muted-foreground">{buyer.email} · {buyer.city}</div>
+                      <div className="font-bold text-xl tracking-tight leading-none mb-1.5">{buyer.name}</div>
+                      <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                        <span>{buyer.email}</span>
+                        <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                        <span>{buyer.city}</span>
+                      </div>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1 max-w-2xl">
-                    <div>
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Potential</div>
-                      <div className="text-lg font-bold">{buyer.potentialScore}</div>
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-10 flex-1 max-w-3xl">
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60 flex items-center gap-1.5">
+                        <TrendingUp className="w-3 h-3" /> Potential
+                      </div>
+                      <div className="text-xl font-black">{buyer.potentialScore}</div>
                     </div>
-                    <div>
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Attention</div>
-                      <div className={`text-lg font-bold ${buyer.attentionScore < 30 ? "text-destructive" : ""}`}>{buyer.attentionScore}</div>
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60 flex items-center gap-1.5">
+                        <Activity className="w-3 h-3" /> Attention
+                      </div>
+                      <div className={`text-xl font-black ${buyer.attentionScore < 30 ? "text-destructive" : ""}`}>{buyer.attentionScore}</div>
                     </div>
-                    <div>
-                      <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Revenue</div>
-                      <div className="text-lg font-bold">${buyer.totalRevenue.toLocaleString()}</div>
+                    <div className="space-y-1">
+                      <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60 flex items-center gap-1.5">
+                        <DollarSign className="w-3 h-3" /> Revenue
+                      </div>
+                      <div className="text-xl font-black">${buyer.totalRevenue.toLocaleString()}</div>
                     </div>
                     <div className="flex flex-col justify-center items-end">
-                      {buyer.isBlindSpot && (
-                        <Badge variant="destructive" className="animate-pulse">Blind Spot</Badge>
-                      )}
-                      {!buyer.isBlindSpot && (
-                        <Badge variant="outline">{getQuadrant(buyer.potentialScore, buyer.attentionScore)}</Badge>
+                      {buyer.isBlindSpot ? (
+                        <Badge variant="destructive" className="animate-pulse px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-destructive/20">Critical Blind Spot</Badge>
+                      ) : (
+                        <Badge variant="outline" className="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border-primary/10">{getQuadrant(buyer.potentialScore, buyer.attentionScore)}</Badge>
                       )}
                     </div>
                   </div>

@@ -13,7 +13,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, Sparkles } from "lucide-react";
+import { Loader2, MessageSquare, Sparkles, AlertCircle, History, Zap } from "lucide-react";
 
 export const CategoryChurn = () => {
   const [data, setData] = useState<BuyerCategoryChurnItem[]>([]);
@@ -71,11 +71,11 @@ export const CategoryChurn = () => {
 
   if (loading) {
     return (
-      <div className="space-y-4 max-w-6xl mx-auto">
+      <div className="space-y-6 max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 w-full" />)}
+          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
         </div>
-        {[1, 2, 3].map(i => <Skeleton key={i} className="h-64 w-full" />)}
+        {[1, 2, 3].map(i => <Skeleton key={i} className="h-72 w-full rounded-2xl" />)}
       </div>
     );
   }
@@ -86,139 +86,160 @@ export const CategoryChurn = () => {
   const active = data.filter((d) => d.buyerStatus === "green").length;
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
+    <div className="space-y-10 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card className="rounded-2xl border-primary/10 bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-semibold">Buyers with Gaps</CardDescription>
-            <CardTitle className="text-3xl font-bold">{total}</CardTitle>
+            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-2">
+              <AlertCircle className="w-3 h-3" /> Buyers with Gaps
+            </CardDescription>
+            <CardTitle className="text-4xl font-black">{total}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="border-t-4 border-t-destructive">
+        <Card className="rounded-2xl border-destructive/20 bg-destructive/5 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-semibold">High Churn Risk</CardDescription>
-            <CardTitle className="text-3xl font-bold text-destructive">{high}</CardTitle>
+            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-destructive/80 flex items-center gap-2">
+              <Zap className="w-3 h-3" /> High Risk
+            </CardDescription>
+            <CardTitle className="text-4xl font-black text-destructive">{high}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="border-t-4 border-t-yellow-500">
+        <Card className="rounded-2xl border-yellow-500/20 bg-yellow-500/5 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-semibold">Medium Churn Risk</CardDescription>
-            <CardTitle className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{medium}</CardTitle>
+            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-yellow-600 dark:text-yellow-500/80">Medium Risk</CardDescription>
+            <CardTitle className="text-4xl font-black text-yellow-600 dark:text-yellow-400">{medium}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="border-t-4 border-t-green-500">
+        <Card className="rounded-2xl border-green-500/20 bg-green-500/5 backdrop-blur-sm">
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-semibold">Healthy</CardDescription>
-            <CardTitle className="text-3xl font-bold text-green-600 dark:text-green-400">{active}</CardTitle>
+            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-green-600 dark:text-green-500/80">Healthy</CardDescription>
+            <CardTitle className="text-4xl font-black text-green-600 dark:text-green-400">{active}</CardTitle>
           </CardHeader>
         </Card>
       </div>
 
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold px-1">Category-Specific Churn Analysis</h2>
+        <h2 className="text-2xl font-bold tracking-tight px-1">Deep-Dive Analysis</h2>
         {data.map((buyer) => (
-          <Card key={buyer.id} className="overflow-hidden transition-shadow hover:shadow-md">
-            <CardHeader className="bg-muted/30 pb-4">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${
-                    buyer.buyerStatus === "red" ? "bg-destructive/10 text-destructive" : 
-                    buyer.buyerStatus === "yellow" ? "bg-yellow-500/10 text-yellow-600" : "bg-green-500/10 text-green-600"
+          <Card key={buyer.id} className="overflow-hidden rounded-2xl border-primary/5 bg-card/40 backdrop-blur-md transition-all hover:shadow-xl">
+            <CardHeader className="bg-muted/30 border-b border-primary/5 pb-6">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div className="flex items-center gap-5">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 ${
+                    buyer.buyerStatus === "red" ? "bg-destructive/10 text-destructive border border-destructive/20" : 
+                    buyer.buyerStatus === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20" : 
+                    "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
                   }`}>
                     {buyer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
                   </div>
                   <div>
-                    <CardTitle className="text-lg">{buyer.name}</CardTitle>
-                    <CardDescription>{buyer.email} · {buyer.city}</CardDescription>
+                    <CardTitle className="text-xl font-bold tracking-tight">{buyer.name}</CardTitle>
+                    <CardDescription className="font-medium">{buyer.email} · {buyer.city}</CardDescription>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-6">
                   <div className="text-right hidden md:block">
-                    <div className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Issues Found</div>
-                    <div className="text-sm font-semibold">
-                      <span className="text-destructive">{buyer.coldCount} Cold</span> · <span className="text-yellow-600 dark:text-yellow-400">{buyer.warmCount} Warm</span>
+                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1 opacity-70">Gap Summary</div>
+                    <div className="text-sm font-bold flex gap-3">
+                      <span className="text-destructive">{buyer.coldCount} COLD</span>
+                      <span className="text-yellow-600 dark:text-yellow-400">{buyer.warmCount} WARM</span>
                     </div>
                   </div>
                   <Badge variant={buyer.buyerStatus === "red" ? "destructive" : buyer.buyerStatus === "yellow" ? "secondary" : "outline"}
-                    className={buyer.buyerStatus === "yellow" ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400" : ""}>
+                    className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                      buyer.buyerStatus === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" : ""
+                    }`}>
                     {buyer.buyerStatus === "red" ? "Priority" : buyer.buyerStatus === "yellow" ? "Monitor" : "Healthy"}
                   </Badge>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
-              <div className="divide-y">
+              <div className="divide-y divide-primary/5">
                 {buyer.categories.map((category) => (
-                  <div key={category.name} className="p-4 md:p-6 hover:bg-muted/10 transition-colors">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div key={category.name} className="p-6 md:p-8 hover:bg-primary/[0.02] transition-colors relative group">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold text-lg">{category.name}</h4>
-                          <Badge variant="outline" className={`text-[10px] uppercase h-5 ${
+                        <div className="flex items-center gap-3 mb-4">
+                          <h4 className="font-bold text-xl tracking-tight">{category.name}</h4>
+                          <Badge variant="outline" className={`text-[10px] font-black uppercase tracking-widest px-2 ${
                             category.status === "red" ? "text-destructive border-destructive/30 bg-destructive/5" : 
                             category.status === "yellow" ? "text-yellow-600 border-yellow-500/30 bg-yellow-500/5" : "text-green-600 border-green-500/30 bg-green-500/5"
                           }`}>
                             {category.status}
                           </Badge>
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-1 text-sm">
-                          <div className="text-muted-foreground">
-                            Last Order: <span className="text-foreground font-medium">{new Date(category.lastOrderDate).toLocaleDateString()}</span>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 text-sm">
+                          <div className="space-y-1">
+                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60 flex items-center gap-1.5">
+                              <History className="w-3 h-3" /> Last Order
+                            </div>
+                            <div className="font-bold">{new Date(category.lastOrderDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
                           </div>
-                          <div className="text-muted-foreground">
-                            Gap: <span className={`font-medium ${category.status === "red" ? "text-destructive" : ""}`}>{category.daysSinceLastOrder} days</span>
+                          <div className="space-y-1">
+                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Gap Duration</div>
+                            <div className={`font-bold ${category.status === "red" ? "text-destructive" : ""}`}>{category.daysSinceLastOrder} days</div>
                           </div>
-                          <div className="text-muted-foreground">
-                            Avg Cycle: <span className="text-foreground font-medium">{category.avgCycleDays} days</span>
+                          <div className="space-y-1">
+                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Avg Cycle</div>
+                            <div className="font-bold">{category.avgCycleDays} days</div>
                           </div>
-                          <div className="text-muted-foreground">
-                            Total Orders: <span className="text-foreground font-medium">{category.totalOrders}</span>
+                          <div className="space-y-1">
+                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Lifetime Count</div>
+                            <div className="font-bold">{category.totalOrders} orders</div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="shrink-0">
                         <Dialog>
                           <DialogTrigger asChild>
                             <Button 
                               variant="outline" 
-                              size="sm" 
-                              className="gap-2"
+                              className="h-11 rounded-xl gap-2.5 font-bold border-primary/10 hover:bg-primary/5 transition-all active:scale-95 group-hover:border-primary/30"
                               onClick={() => generateMessage(buyer.id, category.name)}
                             >
-                              <Sparkles className="w-4 h-4 text-purple-500" />
-                              Outreach
+                              <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
+                              AI Outreach
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-[500px]">
+                          <DialogContent className="sm:max-w-[550px] rounded-3xl border-primary/10 bg-card/95 backdrop-blur-xl">
                             <DialogHeader>
-                              <DialogTitle className="flex items-center gap-2">
-                                <MessageSquare className="w-5 h-5" />
-                                Outreach Message: {category.name}
+                              <DialogTitle className="flex items-center gap-3 text-2xl font-black tracking-tight">
+                                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                                  <Sparkles className="w-5 h-5 text-purple-500" />
+                                </div>
+                                Smart outreach
                               </DialogTitle>
-                              <DialogDescription>
-                                AI-generated message for {buyer.name} regarding their {category.name} order gap.
+                              <DialogDescription className="text-base font-medium">
+                                Drafting personalized communication for {buyer.name}'s {category.name} gap.
                               </DialogDescription>
                             </DialogHeader>
-                            <div className="py-4">
+                            <div className="py-6">
                               {generating[`${buyer.id}-${category.name}`] ? (
-                                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                                  <Loader2 className="w-8 h-8 animate-spin mb-4 text-primary" />
-                                  <p className="text-sm font-medium">Generating personalised message...</p>
+                                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                                  <div className="relative">
+                                    <Loader2 className="w-12 h-12 animate-spin text-primary opacity-20" />
+                                    <Sparkles className="w-6 h-6 text-purple-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-bounce" />
+                                  </div>
+                                  <p className="mt-6 text-sm font-black uppercase tracking-widest opacity-50">Synthesizing message...</p>
                                 </div>
                               ) : (
-                                <Textarea 
-                                  className="min-h-[200px] text-sm leading-relaxed"
-                                  value={aiMessages[`${buyer.id}-${category.name}`] || "Failed to generate message."}
-                                  readOnly
-                                />
+                                <div className="space-y-4">
+                                  <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60 ml-1">Generated Draft</div>
+                                  <Textarea 
+                                    className="min-h-[220px] rounded-2xl bg-muted/30 border-none p-5 text-base leading-relaxed focus-visible:ring-1 focus-visible:ring-primary/20"
+                                    value={aiMessages[`${buyer.id}-${category.name}`] || "Intelligence engine failed to generate response."}
+                                    readOnly
+                                  />
+                                </div>
                               )}
                             </div>
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline" onClick={() => {
+                            <div className="flex justify-end gap-3">
+                              <Button variant="ghost" className="rounded-xl font-bold" onClick={() => {
                                 navigator.clipboard.writeText(aiMessages[`${buyer.id}-${category.name}`] || "");
-                              }}>Copy to Clipboard</Button>
-                              <Button>Open Email</Button>
+                              }}>Copy Draft</Button>
+                              <Button className="rounded-xl font-black px-8 shadow-lg shadow-primary/20">Send Email</Button>
                             </div>
                           </DialogContent>
                         </Dialog>
