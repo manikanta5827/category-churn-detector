@@ -182,21 +182,16 @@ app.get("/api/reps/:repId/category-churn", async ({ params }) => {
 // ─── FEATURE 2: AI Message for cold category ─────
 app.post(
   "/api/reps/:repId/category-churn/:buyerId/:categoryName/message",
-  async (context) => {
-    const { params, body } = context;
-    const params_typed = params as {
-      repId: string;
-      buyerId: string;
-      categoryName: string;
-    };
-    const body_typed = body as {
+  async ({ params, body }) => {
+    const { buyerId, categoryName } = params;
+    const { daysSince, avgCycle, totalOrders } = body as {
       daysSince: number;
       avgCycle: number;
       totalOrders: number;
     };
 
     const buyer = await prisma.buyer.findUnique({
-      where: { id: Number(params_typed.buyerId) },
+      where: { id: Number(buyerId) },
       include: { rep: true },
     });
 
@@ -208,35 +203,49 @@ You are a wholesale sales rep writing a short, friendly outreach message.
 Context:
 - Buyer name: ${buyer.name}
 - City of the Buyer: ${buyer.city}
-- Category they stopped ordering: ${params_typed.categoryName}
-- Days since last order in this category: ${body_typed.daysSince} days
-- Their usual reorder cycle: every ${body_typed.avgCycle} days
-- How many times they ordered this before: ${body_typed.totalOrders} times
+- Category they stopped ordering: ${categoryName}
+- Days since last order in this category: ${daysSince} days
+- Their usual reorder cycle: every ${avgCycle} days
+- How many times they ordered this before: ${totalOrders} times
 - Sales rep name: ${buyer.rep.name}
 
 Write a SHORT (3-4 sentences max), warm, personalised message from the rep to the buyer.
 Reference the specific category gap. Don't be pushy. Sound human.
-Just the message text. No subject line. No greeting prefix . No Emojis, Include the input data we have given to you in that email and make it personalised, use backslash n for new lines.
+Just the message text. No subject line. No greeting prefix. No Emojis, Include the input data we have given to you in that email and make it personalised, use backslash n for new lines.
   `;
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [{ role: "user", content: prompt }],
-        max_tokens: 150,
-      }),
-    });
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          max_tokens: 150,
+        }),
+      });
 
-    const data = (await response.json()) as {
-      choices: { message: { content: string } }[];
-    };
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("OpenAI API Error:", errorData);
+        return { error: "Failed to generate AI message" };
+      }
 
-    return { message: data?.choices[0]?.message.content };
+      const data = (await response.json()) as any;
+      const content = data?.choices?.[0]?.message?.content;
+
+      if (!content) {
+        return { error: "No content generated from AI" };
+      }
+
+      return { message: content };
+    } catch (error) {
+      console.error("Error calling OpenAI API:", error);
+      return { error: "An unexpected error occurred" };
+    }
   },
 );
 
@@ -314,8 +323,8 @@ app.get("/api/reps/:repId/blind-spots", async ({ params }) => {
 });
 
 // ─── Log a Contact ────────────────────────────────
-app.post("/api/contacts", async (context) => {
-  const body = context.body as {
+app.post("/api/contacts", async ({ body }) => {
+  const { repId, buyerId, contactType, note } = body as {
     repId: number;
     buyerId: number;
     contactType: string;
@@ -323,10 +332,10 @@ app.post("/api/contacts", async (context) => {
   };
   const contact = await prisma.repContact.create({
     data: {
-      repId: body.repId,
-      buyerId: body.buyerId,
-      contactType: body.contactType,
-      note: body.note ?? "",
+      repId,
+      buyerId,
+      contactType,
+      note: note ?? "",
       contactedAt: new Date(),
     },
   });
