@@ -158,15 +158,21 @@ app.get("/api/reps/:repId/category-churn", async ({ params }) => {
 // ─── FEATURE 2: AI Message for cold category ─────
 app.post(
   "/api/reps/:repId/category-churn/:buyerId/:categoryName/message",
-  async ({
-    params,
-    body,
-  }: {
-    params: { repId: string; buyerId: string; categoryName: string };
-    body: { daysSince: number; avgCycle: number; totalOrders: number };
-  }) => {
+  async (context) => {
+    const { params, body } = context;
+    const params_typed = params as {
+      repId: string;
+      buyerId: string;
+      categoryName: string;
+    };
+    const body_typed = body as {
+      daysSince: number;
+      avgCycle: number;
+      totalOrders: number;
+    };
+
     const buyer = await prisma.buyer.findUnique({
-      where: { id: Number(params.buyerId) },
+      where: { id: Number(params_typed.buyerId) },
       include: { rep: true },
     });
 
@@ -178,10 +184,10 @@ You are a wholesale sales rep writing a short, friendly outreach message.
 Context:
 - Buyer name: ${buyer.name}
 - City: ${buyer.city}
-- Category they stopped ordering: ${params.categoryName}
-- Days since last order in this category: ${body.daysSince} days
-- Their usual reorder cycle: every ${body.avgCycle} days
-- How many times they ordered this before: ${body.totalOrders} times
+- Category they stopped ordering: ${params_typed.categoryName}
+- Days since last order in this category: ${body_typed.daysSince} days
+- Their usual reorder cycle: every ${body_typed.avgCycle} days
+- How many times they ordered this before: ${body_typed.totalOrders} times
 - Sales rep name: ${buyer.rep.name}
 
 Write a SHORT (3-4 sentences max), warm, personalised message from the rep to the buyer.
@@ -284,30 +290,24 @@ app.get("/api/reps/:repId/blind-spots", async ({ params }) => {
 });
 
 // ─── Log a Contact ────────────────────────────────
-app.post(
-  "/api/contacts",
-  async ({
-    body,
-  }: {
-    body: {
-      repId: number;
-      buyerId: number;
-      contactType: string;
-      note?: string;
-    };
-  }) => {
-    const contact = await prisma.repContact.create({
-      data: {
-        repId: body.repId,
-        buyerId: body.buyerId,
-        contactType: body.contactType,
-        note: body.note ?? "",
-        contactedAt: new Date(),
-      },
-    });
-    return contact;
-  },
-);
+app.post("/api/contacts", async (context) => {
+  const body = context.body as {
+    repId: number;
+    buyerId: number;
+    contactType: string;
+    note?: string;
+  };
+  const contact = await prisma.repContact.create({
+    data: {
+      repId: body.repId,
+      buyerId: body.buyerId,
+      contactType: body.contactType,
+      note: body.note ?? "",
+      contactedAt: new Date(),
+    },
+  });
+  return contact;
+});
 
 app.listen(3000);
 console.log("🚀 Backend running on http://localhost:3000");

@@ -5,7 +5,10 @@
   "private": true,
   "scripts": {
     "db:generate": "bunx --bun prisma generate",
-    "db:migrate": "bunx --bun prisma migrate dev"
+    "db:migrate": "bunx --bun prisma migrate dev",
+    "db:seed": "bunx --bun prisma db seed",
+    "db:reset": "bunx --bun prisma migrate reset --force && bun run db:seed",
+    "dev": "bun run --hot --watch index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
