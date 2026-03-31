@@ -1,8 +1,15 @@
 import { Elysia } from "elysia";
 import { cors } from "@elysiajs/cors";
 import { prisma } from "./prisma/db";
+import { logixlysia } from "logixlysia";
+import type {
+  Status,
+  BuyerChurnItem,
+  BuyerCategoryChurnItem,
+  Category,
+} from "./types/server-types";
 
-const app = new Elysia();
+const app = new Elysia().use(logixlysia());
 
 app.use(cors());
 
@@ -16,10 +23,7 @@ function daysBetween(date1: Date, date2: Date): number {
 // ─── Helper: category status ─────────────────────
 // Given last order date and avg cycle days
 // returns 'red' | 'yellow' | 'green'
-function getCategoryStatus(
-  lastOrderDate: Date,
-  avgCycleDays: number,
-): "red" | "yellow" | "green" {
+function getCategoryStatus(lastOrderDate: Date, avgCycleDays: number): Status {
   const daysSince = daysBetween(lastOrderDate, new Date());
   if (daysSince > avgCycleDays * 1.5) return "red";
   if (daysSince > avgCycleDays * 1.1) return "yellow";
@@ -39,7 +43,7 @@ app.get("/api/reps/:repId/churn", async ({ params }) => {
   });
 
   return buyers
-    .map((buyer) => {
+    .map((buyer): BuyerChurnItem => {
       const orders = buyer.orders;
       if (orders.length === 0) {
         return {
@@ -47,6 +51,7 @@ app.get("/api/reps/:repId/churn", async ({ params }) => {
           daysSinceLastOrder: 999,
           status: "red",
           avgCycleDays: 0,
+          lastOrderDate: undefined,
         };
       }
 
@@ -77,7 +82,13 @@ app.get("/api/reps/:repId/churn", async ({ params }) => {
         lastOrderDate: lastOrder,
       };
     })
-    .sort((a, b) => b.daysSinceLastOrder - a.daysSinceLastOrder);
+    .sort((a, b) => {
+      const statuses: readonly Status[] = ["red", "yellow", "green"];
+      const statusDiff =
+        statuses.indexOf(a.status) - statuses.indexOf(b.status);
+      if (statusDiff !== 0) return statusDiff;
+      return b.daysSinceLastOrder - a.daysSinceLastOrder;
+    });
 });
 
 // ─── FEATURE 2: Category Churn (buyer list) ──────
@@ -93,7 +104,7 @@ app.get("/api/reps/:repId/category-churn", async ({ params }) => {
   });
 
   const result = buyers
-    .map((buyer) => {
+    .map((buyer): BuyerCategoryChurnItem => {
       // Group orders by category
       const categoryMap: Record<string, Date[]> = {};
 
@@ -104,32 +115,34 @@ app.get("/api/reps/:repId/category-churn", async ({ params }) => {
       });
 
       // Score each category
-      const categories = Object.entries(categoryMap).map(([name, dates]) => {
-        const lastOrder = dates[0]!; // already sorted desc
-        const daysSince = daysBetween(lastOrder, new Date());
+      const categories: Category[] = Object.entries(categoryMap).map(
+        ([name, dates]) => {
+          const lastOrder = dates[0]!; // already sorted desc
+          const daysSince = daysBetween(lastOrder, new Date());
 
-        // avg cycle for this category
-        let avgCycleDays = 30;
-        if (dates.length >= 2) {
-          const gaps = dates
-            .slice(0, -1)
-            .map((d, i) => daysBetween(dates[i + 1]!, d));
-          avgCycleDays = Math.round(
-            gaps.reduce((a, b) => a + b, 0) / gaps.length,
-          );
-        }
+          // avg cycle for this category
+          let avgCycleDays = 30;
+          if (dates.length >= 2) {
+            const gaps = dates
+              .slice(0, -1)
+              .map((d, i) => daysBetween(dates[i + 1]!, d));
+            avgCycleDays = Math.round(
+              gaps.reduce((a, b) => a + b, 0) / gaps.length,
+            );
+          }
 
-        const status = getCategoryStatus(lastOrder, avgCycleDays);
+          const status = getCategoryStatus(lastOrder, avgCycleDays);
 
-        return {
-          name,
-          lastOrderDate: lastOrder,
-          daysSinceLastOrder: daysSince,
-          avgCycleDays,
-          totalOrders: dates.length,
-          status,
-        };
-      });
+          return {
+            name,
+            lastOrderDate: lastOrder,
+            daysSinceLastOrder: daysSince,
+            avgCycleDays,
+            totalOrders: dates.length,
+            status,
+          };
+        },
+      );
 
       const coldCount = categories.filter((c) => c.status === "red").length;
       const warmCount = categories.filter((c) => c.status === "yellow").length;
@@ -149,9 +162,20 @@ app.get("/api/reps/:repId/category-churn", async ({ params }) => {
         buyerStatus,
       };
     })
-    .filter((b) => b.coldCount > 0 || b.warmCount > 0) // only show buyers with issues
-    .sort((a, b) => b.coldCount - a.coldCount); // most cold categories first
-
+    .filter((b) => {
+      if (b.coldCount > 0 || b.warmCount > 0) return true;
+      else {
+        console.log(`Buyer ${b.name} has no issues, skipping`);
+        return false;
+      }
+    }) // only show buyers with issues
+    .sort((a, b) => {
+      const statuses: readonly Status[] = ["red", "yellow", "green"];
+      const statusDiff =
+        statuses.indexOf(a.buyerStatus) - statuses.indexOf(b.buyerStatus);
+      if (statusDiff !== 0) return statusDiff;
+      return b.coldCount - a.coldCount;
+    });
   return result;
 });
 
@@ -183,7 +207,7 @@ You are a wholesale sales rep writing a short, friendly outreach message.
 
 Context:
 - Buyer name: ${buyer.name}
-- City: ${buyer.city}
+- City of the Buyer: ${buyer.city}
 - Category they stopped ordering: ${params_typed.categoryName}
 - Days since last order in this category: ${body_typed.daysSince} days
 - Their usual reorder cycle: every ${body_typed.avgCycle} days
@@ -192,8 +216,8 @@ Context:
 
 Write a SHORT (3-4 sentences max), warm, personalised message from the rep to the buyer.
 Reference the specific category gap. Don't be pushy. Sound human.
-Just the message text. No subject line. No greeting prefix.
-    `;
+Just the message text. No subject line. No greeting prefix . No Emojis, Include the input data we have given to you in that email and make it personalised, use backslash n for new lines.
+  `;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -309,5 +333,4 @@ app.post("/api/contacts", async (context) => {
   return contact;
 });
 
-app.listen(3000);
-console.log("🚀 Backend running on http://localhost:3000");
+app.listen(3040);

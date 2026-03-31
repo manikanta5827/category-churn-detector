@@ -8,7 +8,7 @@
     "db:migrate": "bunx --bun prisma migrate dev",
     "db:seed": "bunx --bun prisma db seed",
     "db:reset": "bunx --bun prisma migrate reset --force && bun run db:seed",
-    "dev": "bun run --hot --watch index.ts"
+    "dev": "bun run --hot index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -21,6 +21,7 @@
     "@elysiajs/cors": "^1.4.1",
     "@prisma/adapter-libsql": "^7.6.0",
     "@prisma/client": "^7.6.0",
-    "elysia": "^1.4.28"
+    "elysia": "^1.4.28",
+    "logixlysia": "^6.3.0"
   }
 }
