@@ -216,17 +216,17 @@ Just the message text. No subject line. No greeting prefix. No Emojis, Include t
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 150,
-        }),
-      });
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 150,
+          }),
+        });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -301,9 +301,6 @@ app.get("/api/reps/:repId/blind-spots", async ({ params }) => {
       Math.min(contactScore + orderScore + notesScore, 100),
     );
 
-    // ── Quadrant ──
-    const isBlindSpot = potentialScore > 50 && attentionScore < 50;
-
     return {
       id: buyer.id,
       name: buyer.name,
@@ -311,7 +308,6 @@ app.get("/api/reps/:repId/blind-spots", async ({ params }) => {
       city: buyer.city,
       potentialScore,
       attentionScore,
-      isBlindSpot,
       totalRevenue: Math.round(totalRevenue),
       orderCount,
       daysSinceContact,

@@ -40,7 +40,7 @@ export const OverallChurn = () => {
   return (
     <div className="space-y-10 max-w-6xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="rounded-2xl border-primary/10 bg-card/50 backdrop-blur-sm">
+        <Card className="rounded-2xl border-primary/10 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/5 dark:shadow-primary/5 transition-transform hover:scale-[1.02] duration-300">
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-2">
               <Users className="w-3 h-3" /> Total Buyers
@@ -48,7 +48,7 @@ export const OverallChurn = () => {
             <CardTitle className="text-4xl font-black">{total}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="rounded-2xl border-destructive/20 bg-destructive/5 backdrop-blur-sm relative overflow-hidden group">
+        <Card className="rounded-2xl border-destructive/20 bg-destructive/5 backdrop-blur-sm relative overflow-hidden group shadow-xl shadow-destructive/5 transition-transform hover:scale-[1.02] duration-300">
           <div className="absolute top-0 right-0 w-24 h-24 bg-destructive/10 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-destructive/20 transition-colors" />
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-destructive/80 flex items-center gap-2">
@@ -57,7 +57,7 @@ export const OverallChurn = () => {
             <CardTitle className="text-4xl font-black text-destructive">{high}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="rounded-2xl border-yellow-500/20 bg-yellow-500/5 backdrop-blur-sm">
+        <Card className="rounded-2xl border-yellow-500/20 bg-yellow-500/5 backdrop-blur-sm shadow-xl shadow-yellow-500/5 transition-transform hover:scale-[1.02] duration-300">
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-yellow-600 dark:text-yellow-500/80 flex items-center gap-2">
               <TrendingDown className="w-3 h-3" /> Medium Risk
@@ -65,7 +65,7 @@ export const OverallChurn = () => {
             <CardTitle className="text-4xl font-black text-yellow-600 dark:text-yellow-400">{medium}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="rounded-2xl border-green-500/20 bg-green-500/5 backdrop-blur-sm">
+        <Card className="rounded-2xl border-green-500/20 bg-green-500/5 backdrop-blur-sm shadow-xl shadow-green-500/5 transition-transform hover:scale-[1.02] duration-300">
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-green-600 dark:text-green-500/80 flex items-center gap-2">
               <CheckCircle2 className="w-3 h-3" /> Active
@@ -82,7 +82,7 @@ export const OverallChurn = () => {
         </div>
         
         {data.map((buyer) => (
-          <Card key={buyer.id} className="group overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-0.5 border-primary/5 bg-card/40 backdrop-blur-md">
+          <Card key={buyer.id} className="group overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 border-primary/5 bg-card/40 backdrop-blur-md shadow-lg shadow-black/5 dark:shadow-primary/5">
             <CardContent className="p-0">
               <div className="flex flex-col md:flex-row">
                 <div className={`w-1.5 shrink-0 ${
@@ -114,7 +114,7 @@ export const OverallChurn = () => {
                         buyer.status === "red" ? "destructive" : 
                         buyer.status === "yellow" ? "secondary" : "outline"
                       } className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                        buyer.status === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" : 
+                        buyer.status === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20" : 
                         buyer.status === "green" ? "text-green-600 border-green-500/20 bg-green-500/5" : "shadow-lg shadow-destructive/20"
                       }`}>
                         {buyer.status === "red" ? "Immediate Action" : buyer.status === "yellow" ? "Warning" : "Healthy"}
@@ -151,8 +151,8 @@ export const OverallChurn = () => {
                       <div className="space-y-1">
                         <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Health Score</div>
                         <div className="flex items-center gap-2">
-                          <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden max-w-[80px]">
-                            <div className={`h-full transition-all duration-500 ${
+                          <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden max-w-[80px] shadow-inner">
+                            <div className={`h-full transition-all duration-500 shadow-[0_0_8px_rgba(0,0,0,0.2)] ${
                               buyer.status === "red" ? "w-[15%] bg-destructive" : "w-[45%] bg-yellow-500"
                             }`} />
                           </div>

@@ -38,7 +38,6 @@ export interface BlindSpotItem {
   city: string;
   potentialScore: number;
   attentionScore: number;
-  isBlindSpot: boolean;
   totalRevenue: number;
   orderCount: number;
   daysSinceContact: number;

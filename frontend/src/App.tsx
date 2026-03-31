@@ -20,10 +20,10 @@ function App() {
           </div>
         )}
 
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm dark:shadow-primary/5">
           <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-primary-foreground font-extrabold shadow-lg shadow-primary/20">
+              <div className="w-9 h-9 bg-primary rounded-xl flex items-center justify-center text-primary-foreground font-extrabold shadow-xl shadow-primary/20">
                 CD
               </div>
               <div>
@@ -41,7 +41,7 @@ function App() {
                 variant="ghost" 
                 size="icon" 
                 onClick={() => setIsDark(!isDark)}
-                className="rounded-full w-9 h-9"
+                className="rounded-full w-9 h-9 shadow-sm"
               >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </Button>
@@ -52,10 +52,10 @@ function App() {
         <main className="relative max-w-7xl mx-auto px-4 py-10">
           <Tabs defaultValue="overall" className="space-y-10">
             <div className="flex flex-col items-center gap-4">
-              <TabsList className="h-12 p-1 bg-muted/50 border rounded-xl w-full max-w-lg shadow-sm">
-                <TabsTrigger value="overall" className="rounded-lg px-6 data-[state=active]:shadow-md">Overall</TabsTrigger>
-                <TabsTrigger value="category" className="rounded-lg px-6 data-[state=active]:shadow-md">Category</TabsTrigger>
-                <TabsTrigger value="blind" className="rounded-lg px-6 data-[state=active]:shadow-md">Blind Spots</TabsTrigger>
+              <TabsList className="h-12 p-1 bg-muted/50 border rounded-xl w-full max-w-lg shadow-xl shadow-black/5 dark:shadow-primary/5">
+                <TabsTrigger value="overall" className="rounded-lg px-6 data-[state=active]:shadow-lg">Overall</TabsTrigger>
+                <TabsTrigger value="category" className="rounded-lg px-6 data-[state=active]:shadow-lg">Category</TabsTrigger>
+                <TabsTrigger value="blind" className="rounded-lg px-6 data-[state=active]:shadow-lg">Blind Spots</TabsTrigger>
               </TabsList>
             </div>
             

@@ -105,7 +105,7 @@ const BlindSpots = () => {
   return (
     <div className="space-y-10 max-w-6xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className={`rounded-2xl border-primary/5 backdrop-blur-sm relative overflow-hidden transition-all duration-500 ${blindSpotsCount > 0 ? "border-destructive/30 bg-destructive/[0.03]" : "bg-card/50"}`}>
+        <Card className={`rounded-2xl border-primary/5 backdrop-blur-sm relative overflow-hidden transition-all duration-500 shadow-xl shadow-black/5 dark:shadow-primary/5 hover:scale-[1.02] ${blindSpotsCount > 0 ? "border-destructive/30 bg-destructive/[0.03] shadow-destructive/5" : "bg-card/50"}`}>
           {blindSpotsCount > 0 && (
             <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/10 rounded-full -mr-16 -mt-16 blur-3xl animate-pulse" />
           )}
@@ -119,7 +119,7 @@ const BlindSpots = () => {
             <p className="text-xs font-medium text-muted-foreground mt-1.5 opacity-70">High-potential accounts currently neglected</p>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl border-primary/5 bg-card/50 backdrop-blur-sm">
+        <Card className="rounded-2xl border-primary/5 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/5 dark:shadow-primary/5 hover:scale-[1.02] transition-transform duration-300">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardDescription className="text-[10px] uppercase font-black tracking-widest text-muted-foreground flex items-center gap-2">
               <Users className="w-3.5 h-3.5" /> Total Active Portfolio
@@ -132,12 +132,12 @@ const BlindSpots = () => {
         </Card>
       </div>
 
-      <Card className="overflow-hidden rounded-3xl border-primary/5 bg-card/40 backdrop-blur-md shadow-2xl">
+      <Card className="overflow-hidden rounded-3xl border-primary/5 bg-card/40 backdrop-blur-md shadow-2xl shadow-black/10 dark:shadow-primary/5">
         <CardHeader className="border-b border-primary/5 pb-8 pt-8 px-8">
           <div className="flex items-center justify-between">
             <div className="space-y-1.5">
               <CardTitle className="text-2xl font-black tracking-tight flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shadow-inner">
                   <Target className="w-5 h-5 text-primary" />
                 </div>
                 Growth Matrix
@@ -189,7 +189,7 @@ const BlindSpots = () => {
                         ? "oklch(0.65 0.15 150)" // healthy green
                         : "oklch(0.5 0 0)"; // neutral
                     return (
-                      <g className="filter drop-shadow-sm transition-all duration-300 hover:brightness-110 cursor-pointer">
+                      <g className="filter drop-shadow-md transition-all duration-300 hover:brightness-110 cursor-pointer">
                         <circle
                           cx={cx}
                           cy={cy}
@@ -216,13 +216,13 @@ const BlindSpots = () => {
           </div>
           <div className="flex flex-wrap items-center justify-center gap-10 mt-6 pt-6 border-t border-primary/5">
             <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              <div className="w-3 h-3 rounded-full bg-destructive/60 border border-destructive/30" /> Blind Spots
+              <div className="w-3 h-3 rounded-full bg-destructive/60 border border-destructive/30 shadow-sm shadow-destructive/20" /> Blind Spots
             </div>
             <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              <div className="w-3 h-3 rounded-full bg-green-500/60 border border-green-500/30" /> Strategic Accounts
+              <div className="w-3 h-3 rounded-full bg-green-500/60 border border-green-500/30 shadow-sm shadow-green-500/20" /> Strategic Accounts
             </div>
             <div className="flex items-center gap-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              <div className="w-3 h-3 rounded-full bg-muted-foreground/40 border border-muted-foreground/20" /> Maintenance
+              <div className="w-3 h-3 rounded-full bg-muted-foreground/40 border border-muted-foreground/20 shadow-sm shadow-black/5" /> Maintenance
             </div>
           </div>
         </CardContent>
@@ -235,11 +235,11 @@ const BlindSpots = () => {
         </h3>
         <div className="grid grid-cols-1 gap-4">
           {data.map((buyer) => (
-            <Card key={buyer.id} className={`group overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-xl border-primary/5 bg-card/40 backdrop-blur-md ${buyer.isBlindSpot ? "border-l-4 border-l-destructive shadow-lg shadow-destructive/5" : ""}`}>
+            <Card key={buyer.id} className={`group overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 border-primary/5 bg-card/40 backdrop-blur-md shadow-lg shadow-black/5 dark:shadow-primary/5 ${buyer.isBlindSpot ? "border-l-4 border-l-destructive shadow-lg shadow-destructive/5" : ""}`}>
               <CardContent className="p-7">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
                   <div className="flex items-center gap-5">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 transition-transform group-hover:scale-105 ${
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 transition-transform group-hover:scale-105 shadow-inner ${
                       buyer.isBlindSpot ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-muted text-muted-foreground"
                     }`}>
                       {buyer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
@@ -277,7 +277,7 @@ const BlindSpots = () => {
                       {buyer.isBlindSpot ? (
                         <Badge variant="destructive" className="animate-pulse px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-destructive/20">Critical Blind Spot</Badge>
                       ) : (
-                        <Badge variant="outline" className="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border-primary/10">{getQuadrant(buyer.potentialScore, buyer.attentionScore)}</Badge>
+                        <Badge variant="outline" className="px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border-primary/10 shadow-sm">{getQuadrant(buyer.potentialScore, buyer.attentionScore)}</Badge>
                       )}
                     </div>
                   </div>

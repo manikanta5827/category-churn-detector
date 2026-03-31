@@ -88,7 +88,7 @@ export const CategoryChurn = () => {
   return (
     <div className="space-y-10 max-w-6xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="rounded-2xl border-primary/10 bg-card/50 backdrop-blur-sm">
+        <Card className="rounded-2xl border-primary/10 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/5 dark:shadow-primary/5 transition-transform hover:scale-[1.02] duration-300">
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-2">
               <AlertCircle className="w-3 h-3" /> Buyers with Gaps
@@ -96,7 +96,7 @@ export const CategoryChurn = () => {
             <CardTitle className="text-4xl font-black">{total}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="rounded-2xl border-destructive/20 bg-destructive/5 backdrop-blur-sm">
+        <Card className="rounded-2xl border-destructive/20 bg-destructive/5 backdrop-blur-sm shadow-xl shadow-destructive/5 transition-transform hover:scale-[1.02] duration-300">
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-destructive/80 flex items-center gap-2">
               <Zap className="w-3 h-3" /> High Risk
@@ -104,13 +104,13 @@ export const CategoryChurn = () => {
             <CardTitle className="text-4xl font-black text-destructive">{high}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="rounded-2xl border-yellow-500/20 bg-yellow-500/5 backdrop-blur-sm">
+        <Card className="rounded-2xl border-yellow-500/20 bg-yellow-500/5 backdrop-blur-sm shadow-xl shadow-yellow-500/5 transition-transform hover:scale-[1.02] duration-300">
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-yellow-600 dark:text-yellow-500/80">Medium Risk</CardDescription>
             <CardTitle className="text-4xl font-black text-yellow-600 dark:text-yellow-400">{medium}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="rounded-2xl border-green-500/20 bg-green-500/5 backdrop-blur-sm">
+        <Card className="rounded-2xl border-green-500/20 bg-green-500/5 backdrop-blur-sm shadow-xl shadow-green-500/5 transition-transform hover:scale-[1.02] duration-300">
           <CardHeader className="pb-2">
             <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-green-600 dark:text-green-500/80">Healthy</CardDescription>
             <CardTitle className="text-4xl font-black text-green-600 dark:text-green-400">{active}</CardTitle>
@@ -121,7 +121,7 @@ export const CategoryChurn = () => {
       <div className="space-y-6">
         <h2 className="text-2xl font-bold tracking-tight px-1">Deep-Dive Analysis</h2>
         {data.map((buyer) => (
-          <Card key={buyer.id} className="overflow-hidden rounded-2xl border-primary/5 bg-card/40 backdrop-blur-md transition-all hover:shadow-xl">
+          <Card key={buyer.id} className="overflow-hidden rounded-2xl border-primary/5 bg-card/40 backdrop-blur-md transition-all hover:shadow-2xl hover:shadow-primary/10 shadow-lg shadow-black/5 dark:shadow-primary/5">
             <CardHeader className="bg-muted/30 border-b border-primary/5 pb-6">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex items-center gap-5">
@@ -147,7 +147,7 @@ export const CategoryChurn = () => {
                   </div>
                   <Badge variant={buyer.buyerStatus === "red" ? "destructive" : buyer.buyerStatus === "yellow" ? "secondary" : "outline"}
                     className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                      buyer.buyerStatus === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/20" : ""
+                      buyer.buyerStatus === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20" : ""
                     }`}>
                     {buyer.buyerStatus === "red" ? "Priority" : buyer.buyerStatus === "yellow" ? "Monitor" : "Healthy"}
                   </Badge>
@@ -196,14 +196,14 @@ export const CategoryChurn = () => {
                           <DialogTrigger asChild>
                             <Button 
                               variant="outline" 
-                              className="h-11 rounded-xl gap-2.5 font-bold border-primary/10 hover:bg-primary/5 transition-all active:scale-95 group-hover:border-primary/30"
+                              className="h-11 rounded-xl gap-2.5 font-bold border-primary/10 hover:bg-primary/5 transition-all active:scale-95 group-hover:border-primary/30 shadow-sm"
                               onClick={() => generateMessage(buyer.id, category.name)}
                             >
                               <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
                               AI Outreach
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-[550px] rounded-3xl border-primary/10 bg-card/95 backdrop-blur-xl">
+                          <DialogContent className="sm:max-w-[550px] rounded-3xl border-primary/10 bg-card/95 backdrop-blur-xl shadow-2xl">
                             <DialogHeader>
                               <DialogTitle className="flex items-center gap-3 text-2xl font-black tracking-tight">
                                 <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
@@ -228,7 +228,7 @@ export const CategoryChurn = () => {
                                 <div className="space-y-4">
                                   <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60 ml-1">Generated Draft</div>
                                   <Textarea 
-                                    className="min-h-[220px] rounded-2xl bg-muted/30 border-none p-5 text-base leading-relaxed focus-visible:ring-1 focus-visible:ring-primary/20"
+                                    className="min-h-[220px] rounded-2xl bg-muted/30 border-none p-5 text-base leading-relaxed focus-visible:ring-1 focus-visible:ring-primary/20 shadow-inner"
                                     value={aiMessages[`${buyer.id}-${category.name}`] || "Intelligence engine failed to generate response."}
                                     readOnly
                                   />
