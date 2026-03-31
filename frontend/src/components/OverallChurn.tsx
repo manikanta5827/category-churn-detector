@@ -1,13 +1,21 @@
 import { useEffect, useState } from "react";
-import type { BuyerChurnItem } from "../types";
+import type { BuyerChurnItem, Status } from "../types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TrendingDown, Users, AlertTriangle, CheckCircle2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Loader2, AlertCircle, Send, StickyNote, ChevronRight, Info } from "lucide-react";
+import { buildGmailLink } from "./CategoryChurn";
 
 export const OverallChurn = () => {
   const [data, setData] = useState<BuyerChurnItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBuyer, setSelectedBuyer] = useState<BuyerChurnItem | null>(null);
+  const [aiDraft, setAiDraft] = useState<{subject: string, body: string} | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetch("http://localhost:3040/api/reps/1/churn")
@@ -17,165 +25,186 @@ export const OverallChurn = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const fetchAiMessage = async (buyer: BuyerChurnItem) => {
+    setGenerating(true);
+    setAiDraft(null);
+    try {
+      const response = await fetch(
+        `http://localhost:3040/api/reps/1/churn/${buyer.id}/message`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            daysSince: buyer.daysSinceLastOrder,
+            avgCycle: buyer.avgCycleDays,
+          }),
+        },
+      );
+      const result = await response.json();
+      if (result.error) {
+        alert(result.error);
+      } else {
+        setAiDraft(result);
+      }
+    } catch (err) {
+      console.error("Error generating AI message:", err);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleBuyerClick = (buyer: BuyerChurnItem) => {
+    if (buyer.status === "green") return;
+    setSelectedBuyer(buyer);
+    fetchAiMessage(buyer);
+  };
+
   if (loading) {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-28 w-full rounded-2xl" />
-          ))}
-        </div>
-        {[1, 2, 3].map(i => (
-          <Skeleton key={i} className="h-44 w-full rounded-2xl" />
-        ))}
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
       </div>
     );
   }
 
-  const total = data.length;
-  const high = data.filter((d) => d.status === "red").length;
-  const medium = data.filter((d) => d.status === "yellow").length;
-  const active = data.filter((d) => d.status === "green").length;
-
   return (
-    <div className="space-y-10 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="rounded-2xl border-primary/10 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/5 dark:shadow-primary/5 transition-transform hover:scale-[1.02] duration-300">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-2">
-              <Users className="w-3 h-3" /> Total Buyers
-            </CardDescription>
-            <CardTitle className="text-4xl font-black">{total}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="rounded-2xl border-destructive/20 bg-destructive/5 backdrop-blur-sm relative overflow-hidden group shadow-xl shadow-destructive/5 transition-transform hover:scale-[1.02] duration-300">
-          <div className="absolute top-0 right-0 w-24 h-24 bg-destructive/10 rounded-full -mr-12 -mt-12 blur-2xl group-hover:bg-destructive/20 transition-colors" />
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-destructive/80 flex items-center gap-2">
-              <AlertTriangle className="w-3 h-3" /> High Risk
-            </CardDescription>
-            <CardTitle className="text-4xl font-black text-destructive">{high}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="rounded-2xl border-yellow-500/20 bg-yellow-500/5 backdrop-blur-sm shadow-xl shadow-yellow-500/5 transition-transform hover:scale-[1.02] duration-300">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-yellow-600 dark:text-yellow-500/80 flex items-center gap-2">
-              <TrendingDown className="w-3 h-3" /> Medium Risk
-            </CardDescription>
-            <CardTitle className="text-4xl font-black text-yellow-600 dark:text-yellow-400">{medium}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="rounded-2xl border-green-500/20 bg-green-500/5 backdrop-blur-sm shadow-xl shadow-green-500/5 transition-transform hover:scale-[1.02] duration-300">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-green-600 dark:text-green-500/80 flex items-center gap-2">
-              <CheckCircle2 className="w-3 h-3" /> Active
-            </CardDescription>
-            <CardTitle className="text-4xl font-black text-green-600 dark:text-green-400">{active}</CardTitle>
-          </CardHeader>
-        </Card>
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="px-1">
+        <h2 className="text-xl font-bold tracking-tight">Overall Churn</h2>
+        <p className="text-sm text-muted-foreground font-medium">
+          <span className="text-red-500 font-bold">{data.filter(b => b.status === "red").length} buyers</span> are at high risk of churning
+        </p>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-2xl font-bold tracking-tight">Risk Analysis</h2>
-          <div className="text-xs text-muted-foreground font-medium">Sorted by critical priority</div>
-        </div>
-        
+      <div className="border rounded-xl overflow-hidden divide-y divide-border/50 bg-card shadow-sm">
         {data.map((buyer) => (
-          <Card key={buyer.id} className="group overflow-hidden rounded-2xl transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 hover:-translate-y-1 border-primary/5 bg-card/40 backdrop-blur-md shadow-lg shadow-black/5 dark:shadow-primary/5">
-            <CardContent className="p-0">
-              <div className="flex flex-col md:flex-row">
-                <div className={`w-1.5 shrink-0 ${
-                  buyer.status === "red" ? "bg-destructive shadow-[0_0_15px_oklch(var(--destructive))]" : 
-                  buyer.status === "yellow" ? "bg-yellow-500 shadow-[0_0_15px_oklch(0.7_0.15_90)]" : "bg-green-500"
-                }`} />
-                <div className="p-7 flex-1">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div className="flex items-center gap-5">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 shadow-inner transition-transform group-hover:scale-105 duration-300 ${
-                        buyer.status === "red" ? "bg-destructive/10 text-destructive border border-destructive/20" : 
-                        buyer.status === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20" : 
-                        "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
-                      }`}>
-                        {buyer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="font-bold text-xl tracking-tight leading-none mb-1.5">{buyer.name}</div>
-                        <div className="text-sm text-muted-foreground font-medium flex items-center gap-2">
-                          <span>{buyer.email}</span>
-                          <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                          <span>{buyer.city}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col md:items-end gap-2">
-                      <Badge variant={
-                        buyer.status === "red" ? "destructive" : 
-                        buyer.status === "yellow" ? "secondary" : "outline"
-                      } className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                        buyer.status === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20" : 
-                        buyer.status === "green" ? "text-green-600 border-green-500/20 bg-green-500/5" : "shadow-lg shadow-destructive/20"
-                      }`}>
-                        {buyer.status === "red" ? "Immediate Action" : buyer.status === "yellow" ? "Warning" : "Healthy"}
-                      </Badge>
-                      {buyer.daysSinceLastOrder > buyer.avgCycleDays && (
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-destructive">
-                          <AlertTriangle className="w-3.5 h-3.5" />
-                          <span>Overdue {buyer.daysSinceLastOrder - buyer.avgCycleDays} days</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+          <div 
+            key={buyer.id} 
+            className={`flex items-center justify-between p-5 transition-all ${buyer.status !== "green" ? "hover:bg-muted/30 cursor-pointer active:scale-[0.99]" : "opacity-70"}`}
+            onClick={() => handleBuyerClick(buyer)}
+          >
+            <div className="flex items-center gap-4">
+              <StatusIndicator status={buyer.status} />
+              <div>
+                <span className="font-bold text-sm">{buyer.name}</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-medium tracking-tight">
+                  Last order: {buyer.daysSinceLastOrder} days ago · {buyer.city}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-5">
+              <div className="text-right">
+                <span className={`text-xs font-bold ${
+                  buyer.status === "red" ? "text-red-500" : 
+                  buyer.status === "yellow" ? "text-yellow-600" : "text-green-600"
+                }`}>
+                  {buyer.status === "red" ? "Priority" : 
+                   buyer.status === "yellow" ? "Warning" : "Active"}
+                </span>
+                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tight mt-0.5">
+                  Avg {buyer.avgCycleDays}d
+                </p>
+              </div>
+              {buyer.status !== "green" && <ChevronRight className="h-4 w-4 text-muted-foreground opacity-40" />}
+            </div>
+          </div>
+        ))}
+      </div>
 
-                  {buyer.status !== "green" ? (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-8 pt-6 border-t border-primary/5">
-                      <div className="space-y-1">
-                        <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Avg Frequency</div>
-                        <div className="text-base font-bold flex items-baseline gap-1">
-                          {buyer.avgCycleDays} <span className="text-xs font-medium text-muted-foreground">days</span>
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Last Activity</div>
-                        <div className="text-base font-bold text-destructive flex items-baseline gap-1">
-                          {buyer.daysSinceLastOrder} <span className="text-xs font-medium opacity-70">days ago</span>
-                        </div>
-                      </div>
-                      <div className="hidden md:block space-y-1">
-                        <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Last Date</div>
-                        <div className="text-base font-bold">
-                          {buyer.lastOrderDate ? new Date(buyer.lastOrderDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : "N/A"}
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Health Score</div>
-                        <div className="flex items-center gap-2">
-                          <div className="h-1.5 flex-1 bg-muted rounded-full overflow-hidden max-w-[80px] shadow-inner">
-                            <div className={`h-full transition-all duration-500 shadow-[0_0_8px_rgba(0,0,0,0.2)] ${
-                              buyer.status === "red" ? "w-[15%] bg-destructive" : "w-[45%] bg-yellow-500"
-                            }`} />
-                          </div>
-                          <span className={`text-sm font-bold ${buyer.status === "red" ? "text-destructive" : "text-yellow-600 dark:text-yellow-400"}`}>
-                            {buyer.status === "red" ? "Critical" : "Fair"}
-                          </span>
-                        </div>
-                      </div>
+      <Dialog open={!!selectedBuyer} onOpenChange={(open) => !open && setSelectedBuyer(null)}>
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-xl">
+          {selectedBuyer && (
+            <div className="flex flex-col">
+              <div className="p-6 border-b bg-muted/30">
+                <div className="flex items-center gap-2 mb-4">
+                  <StatusIndicator status={selectedBuyer.status} />
+                  <h3 className="text-lg font-bold tracking-tight">Account Warning: {selectedBuyer.name}</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-xs">
+                  <div>
+                    <p className="text-muted-foreground mb-1 uppercase tracking-tighter font-bold text-[9px]">Last ordered</p>
+                    <p className="font-semibold">{selectedBuyer.daysSinceLastOrder} days ago</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground mb-1 uppercase tracking-tighter font-bold text-[9px]">Usual pattern</p>
+                    <p className="font-semibold">Every {selectedBuyer.avgCycleDays} days</p>
+                  </div>
+                  <div className="col-span-2 bg-red-50 dark:bg-red-900/20 p-2.5 rounded-lg flex items-center gap-3 border border-red-100 dark:border-red-900/40">
+                    <AlertCircle className="h-4 w-4 text-red-500" />
+                    <span className="text-red-700 dark:text-red-400 font-bold text-xs">
+                      Overdue by {Math.max(0, selectedBuyer.daysSinceLastOrder - selectedBuyer.avgCycleDays)} days
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-5">
+                <div className="bg-blue-50 dark:bg-blue-900/20 p-3.5 rounded-lg flex gap-3 border border-blue-100 dark:border-blue-900/40">
+                  <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                  <p className="text-[12px] text-blue-800 dark:text-blue-300 leading-relaxed">
+                    <strong>AI Insight:</strong> Buyer has significantly exceeded their normal reorder frequency. High probability of competitive switching.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Draft outreach</p>
+                  {generating ? (
+                    <div className="h-[140px] flex flex-col items-center justify-center border rounded-lg bg-muted/10">
+                      <Loader2 className="h-5 w-5 animate-spin text-primary mb-2" />
+                      <span className="text-[9px] uppercase font-bold tracking-widest opacity-50">Synthesizing...</span>
                     </div>
                   ) : (
-                    <div className="mt-6 pt-5 border-t border-primary/5 text-sm text-muted-foreground flex items-center gap-2 font-medium">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      Performing above baseline. Next expected order in {Math.max(0, buyer.avgCycleDays - buyer.daysSinceLastOrder)} days.
+                    <div className="space-y-3">
+                      <input 
+                        className="w-full text-xs font-bold p-2.5 bg-muted/40 border-none rounded-lg focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+                        value={aiDraft?.subject || ""}
+                        onChange={(e) => setAiDraft(prev => prev ? { ...prev, subject: e.target.value } : null)}
+                        placeholder="Subject"
+                      />
+                      <Textarea 
+                        className="min-h-[120px] text-xs leading-relaxed bg-muted/40 border-none rounded-lg p-3 resize-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+                        value={aiDraft?.body || ""}
+                        onChange={(e) => setAiDraft(prev => prev ? { ...prev, body: e.target.value } : null)}
+                      />
                     </div>
                   )}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+
+              <div className="p-5 bg-muted/30 border-t flex gap-3">
+                <button 
+                  className="flex-1 h-10 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  onClick={() => {
+                    if (aiDraft && selectedBuyer) {
+                      window.open(buildGmailLink(selectedBuyer.email, aiDraft.subject, aiDraft.body), "_blank");
+                    }
+                  }}
+                  disabled={!aiDraft}
+                >
+                  <Send className="h-3 w-3" /> Send via Gmail
+                </button>
+                <button className="h-10 px-4 rounded-lg border border-input bg-background text-xs font-bold" onClick={() => setSelectedBuyer(null)}>
+                  Dismiss
+                </button>
+                <button className="h-10 w-10 flex items-center justify-center rounded-lg border border-input bg-background">
+                  <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
+};
+
+const StatusIndicator = ({ status }: { status: Status }) => {
+  const colors = {
+    red: "bg-red-500",
+    yellow: "bg-yellow-500",
+    green: "bg-green-500"
+  };
+  return <div className={`w-2 h-2 rounded-full ${colors[status]} shadow-sm`} />;
 };
 
 export default OverallChurn;

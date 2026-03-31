@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { BuyerCategoryChurnItem } from "../types";
+import type { BuyerCategoryChurnItem, Category, Status } from "../types";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -7,19 +7,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, MessageSquare, Sparkles, AlertCircle, History, Zap } from "lucide-react";
+import { Loader2, ChevronRight, ArrowLeft, Info, Send, StickyNote } from "lucide-react";
+
+export function buildGmailLink(toEmail: string, subject: string, body: string) {
+  const base = "https://mail.google.com/mail/u/0/?view=cm&fs=1";
+  return `${base}&to=${encodeURIComponent(toEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 export const CategoryChurn = () => {
   const [data, setData] = useState<BuyerCategoryChurnItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [aiMessages, setAiMessages] = useState<Record<string, string>>({});
-  const [generating, setGenerating] = useState<Record<string, boolean>>({});
+  const [selectedBuyer, setSelectedBuyer] = useState<BuyerCategoryChurnItem | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<{buyer: BuyerCategoryChurnItem, category: Category} | null>(null);
+  const [aiDraft, setAiDraft] = useState<{subject: string, body: string} | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetch("http://localhost:3040/api/reps/1/category-churn")
@@ -29,23 +32,12 @@ export const CategoryChurn = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const generateMessage = async (buyerId: number, categoryName: string) => {
-    const key = `${buyerId}-${categoryName}`;
-    if (aiMessages[key]) return;
-
-    setGenerating(prev => ({ ...prev, [key]: true }));
-
-    const category = data
-      .find((b) => b.id === buyerId)
-      ?.categories.find((c) => c.name === categoryName);
-    if (!category) {
-      setGenerating(prev => ({ ...prev, [key]: false }));
-      return;
-    }
-
+  const fetchAiMessage = async (buyer: BuyerCategoryChurnItem, category: Category) => {
+    setGenerating(true);
+    setAiDraft(null);
     try {
       const response = await fetch(
-        `http://localhost:3040/api/reps/1/category-churn/${buyerId}/${categoryName}/message`,
+        `http://localhost:3040/api/reps/1/category-churn/${buyer.id}/${category.name}/message`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -56,204 +48,221 @@ export const CategoryChurn = () => {
           }),
         },
       );
-      const result: { message: string; error?: string } = await response.json();
+      const result = await response.json();
       if (result.error) {
         alert(result.error);
       } else {
-        setAiMessages((prev) => ({ ...prev, [key]: result.message }));
+        setAiDraft(result);
       }
     } catch (err) {
       console.error("Error generating AI message:", err);
     } finally {
-      setGenerating(prev => ({ ...prev, [key]: false }));
+      setGenerating(false);
+    }
+  };
+
+  const handleCategoryClick = (buyer: BuyerCategoryChurnItem, category: Category) => {
+    setSelectedCategory({ buyer, category });
+    if (category.status !== "green") {
+      fetchAiMessage(buyer, category);
     }
   };
 
   if (loading) {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 w-full rounded-2xl" />)}
-        </div>
-        {[1, 2, 3].map(i => <Skeleton key={i} className="h-72 w-full rounded-2xl" />)}
+      <div className="space-y-4">
+        {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
       </div>
     );
   }
 
-  const total = data.length;
-  const high = data.filter((d) => d.buyerStatus === "red").length;
-  const medium = data.filter((d) => d.buyerStatus === "yellow").length;
-  const active = data.filter((d) => d.buyerStatus === "green").length;
+  // LEVEL 2: Buyer Detail View
+  if (selectedBuyer) {
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <div className="flex items-center gap-4 px-2">
+          <Button variant="ghost" size="icon" onClick={() => setSelectedBuyer(null)} className="rounded-full h-8 w-8">
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h2 className="text-xl font-bold tracking-tight">{selectedBuyer.name}</h2>
+            <p className="text-xs text-muted-foreground">Last order: {selectedBuyer.categories[0]?.daysSinceLastOrder} days ago · {selectedBuyer.city}</p>
+          </div>
+        </div>
 
-  return (
-    <div className="space-y-10 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="rounded-2xl border-primary/10 bg-card/50 backdrop-blur-sm shadow-xl shadow-black/5 dark:shadow-primary/5 transition-transform hover:scale-[1.02] duration-300">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground flex items-center gap-2">
-              <AlertCircle className="w-3 h-3" /> Buyers with Gaps
-            </CardDescription>
-            <CardTitle className="text-4xl font-black">{total}</CardTitle>
+        <Card className="border shadow-sm bg-card/50 overflow-hidden">
+          <CardHeader className="pb-3 pt-4 px-6 border-b">
+            <CardTitle className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Category Health Summary</CardTitle>
           </CardHeader>
+          <CardContent className="p-0">
+            <div className="divide-y divide-border/50">
+              {selectedBuyer.categories.map((cat) => (
+                <div 
+                  key={cat.name} 
+                  className="flex items-center justify-between p-5 hover:bg-muted/30 cursor-pointer transition-colors"
+                  onClick={() => handleCategoryClick(selectedBuyer, cat)}
+                >
+                  <div className="flex items-center gap-4">
+                    <StatusIndicator status={cat.status} />
+                    <span className="font-semibold text-sm">{cat.name}</span>
+                  </div>
+                  <div className="text-xs text-right">
+                    {cat.status === "green" ? (
+                      <span className="text-green-600 font-medium">Healthy · {cat.daysSinceLastOrder}d</span>
+                    ) : (
+                      <span className={cat.status === "red" ? "text-red-500 font-bold" : "text-yellow-600 font-bold"}>
+                        {cat.daysSinceLastOrder}d silent <span className="text-muted-foreground font-normal ml-1">(avg: {cat.avgCycleDays}d)</span>
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
         </Card>
-        <Card className="rounded-2xl border-destructive/20 bg-destructive/5 backdrop-blur-sm shadow-xl shadow-destructive/5 transition-transform hover:scale-[1.02] duration-300">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-destructive/80 flex items-center gap-2">
-              <Zap className="w-3 h-3" /> High Risk
-            </CardDescription>
-            <CardTitle className="text-4xl font-black text-destructive">{high}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="rounded-2xl border-yellow-500/20 bg-yellow-500/5 backdrop-blur-sm shadow-xl shadow-yellow-500/5 transition-transform hover:scale-[1.02] duration-300">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-yellow-600 dark:text-yellow-500/80">Medium Risk</CardDescription>
-            <CardTitle className="text-4xl font-black text-yellow-600 dark:text-yellow-400">{medium}</CardTitle>
-          </CardHeader>
-        </Card>
-        <Card className="rounded-2xl border-green-500/20 bg-green-500/5 backdrop-blur-sm shadow-xl shadow-green-500/5 transition-transform hover:scale-[1.02] duration-300">
-          <CardHeader className="pb-2">
-            <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-green-600 dark:text-green-500/80">Healthy</CardDescription>
-            <CardTitle className="text-4xl font-black text-green-600 dark:text-green-400">{active}</CardTitle>
-          </CardHeader>
-        </Card>
+
+        {/* LEVEL 3: Category Detail Popup */}
+        <Dialog open={!!selectedCategory} onOpenChange={(open) => !open && setSelectedCategory(null)}>
+          <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-xl">
+            {selectedCategory && (
+              <div className="flex flex-col">
+                <div className="p-6 border-b bg-muted/30">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <StatusIndicator status={selectedCategory.category.status} />
+                      <h3 className="text-lg font-bold tracking-tight">{selectedCategory.buyer.name} — {selectedCategory.category.name}</h3>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-xs">
+                    <div>
+                      <p className="text-muted-foreground mb-1 uppercase tracking-tighter font-bold text-[9px]">Last ordered</p>
+                      <p className="font-semibold">{selectedCategory.category.daysSinceLastOrder} days ago</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1 uppercase tracking-tighter font-bold text-[9px]">Usual pattern</p>
+                      <p className="font-semibold">Every {selectedCategory.category.avgCycleDays} days</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1 uppercase tracking-tighter font-bold text-[9px]">Orders before</p>
+                      <p className="font-semibold">{selectedCategory.category.totalOrders} total orders</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground mb-1 uppercase tracking-tighter font-bold text-[9px]">Missed cycles</p>
+                      <p className="font-bold text-red-500">~{(selectedCategory.category.daysSinceLastOrder / selectedCategory.category.avgCycleDays).toFixed(1)} cycles missed</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-5">
+                  <div className="bg-blue-50 dark:bg-blue-900/20 p-3.5 rounded-lg flex gap-3 border border-blue-100 dark:border-blue-900/40">
+                    <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+                    <p className="text-[12px] text-blue-800 dark:text-blue-300 leading-relaxed">
+                      <strong>AI Diagnosis:</strong> Deviation from normal reorder pattern. Account requires immediate touchpoint to address potential competitive displacement.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Draft outreach</p>
+                    {generating ? (
+                      <div className="h-[140px] flex flex-col items-center justify-center border rounded-lg bg-muted/10">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary mb-2" />
+                        <span className="text-[9px] uppercase font-bold tracking-widest opacity-50">Generating...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <input 
+                          className="w-full text-xs font-bold p-2.5 bg-muted/40 border-none rounded-lg focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+                          value={aiDraft?.subject || ""}
+                          onChange={(e) => setAiDraft(prev => prev ? { ...prev, subject: e.target.value } : null)}
+                          placeholder="Subject"
+                        />
+                        <Textarea 
+                          className="min-h-[120px] text-xs leading-relaxed bg-muted/40 border-none rounded-lg p-3 resize-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
+                          value={aiDraft?.body || ""}
+                          onChange={(e) => setAiDraft(prev => prev ? { ...prev, body: e.target.value } : null)}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="p-5 bg-muted/30 border-t flex gap-3">
+                  <button 
+                    className="flex-1 h-10 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    onClick={() => {
+                      if (aiDraft) {
+                        window.open(buildGmailLink(selectedCategory.buyer.email, aiDraft.subject, aiDraft.body), "_blank");
+                      }
+                    }}
+                    disabled={!aiDraft}
+                  >
+                    <Send className="h-3 w-3" /> Send via Gmail
+                  </button>
+                  <button className="h-10 px-4 rounded-lg border border-input bg-background text-xs font-bold" onClick={() => setSelectedCategory(null)}>
+                    Dismiss
+                  </button>
+                  <button className="h-10 w-10 flex items-center justify-center rounded-lg border border-input bg-background">
+                    <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
+    );
+  }
 
-      <div className="space-y-6">
-        <h2 className="text-2xl font-bold tracking-tight px-1">Deep-Dive Analysis</h2>
+  // LEVEL 1: Buyer List
+  return (
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <div className="px-1">
+        <h2 className="text-xl font-bold tracking-tight">Category Churn</h2>
+        <p className="text-sm text-muted-foreground font-medium">
+          <span className="text-red-500 font-bold">{data.filter(b => b.coldCount > 0).length} buyers</span> have cold categories this month
+        </p>
+      </div>
+      
+      <div className="border rounded-xl overflow-hidden divide-y divide-border/50 bg-card shadow-sm">
         {data.map((buyer) => (
-          <Card key={buyer.id} className="overflow-hidden rounded-2xl border-primary/5 bg-card/40 backdrop-blur-md transition-all hover:shadow-2xl hover:shadow-primary/10 shadow-lg shadow-black/5 dark:shadow-primary/5">
-            <CardHeader className="bg-muted/30 border-b border-primary/5 pb-6">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="flex items-center gap-5">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center font-black text-lg shrink-0 ${
-                    buyer.buyerStatus === "red" ? "bg-destructive/10 text-destructive border border-destructive/20" : 
-                    buyer.buyerStatus === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20" : 
-                    "bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20"
-                  }`}>
-                    {buyer.name.split(" ").map(n => n[0]).join("").toUpperCase()}
-                  </div>
-                  <div>
-                    <CardTitle className="text-xl font-bold tracking-tight">{buyer.name}</CardTitle>
-                    <CardDescription className="font-medium">{buyer.email} · {buyer.city}</CardDescription>
-                  </div>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right hidden md:block">
-                    <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1 opacity-70">Gap Summary</div>
-                    <div className="text-sm font-bold flex gap-3">
-                      <span className="text-destructive">{buyer.coldCount} COLD</span>
-                      <span className="text-yellow-600 dark:text-yellow-400">{buyer.warmCount} WARM</span>
-                    </div>
-                  </div>
-                  <Badge variant={buyer.buyerStatus === "red" ? "destructive" : buyer.buyerStatus === "yellow" ? "secondary" : "outline"}
-                    className={`px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                      buyer.buyerStatus === "yellow" ? "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border border-yellow-500/20" : ""
-                    }`}>
-                    {buyer.buyerStatus === "red" ? "Priority" : buyer.buyerStatus === "yellow" ? "Monitor" : "Healthy"}
-                  </Badge>
-                </div>
+          <div 
+            key={buyer.id} 
+            className="flex items-center justify-between p-5 hover:bg-muted/30 cursor-pointer transition-all active:scale-[0.99]"
+            onClick={() => setSelectedBuyer(buyer)}
+          >
+            <div className="flex items-center gap-4">
+              <StatusIndicator status={buyer.buyerStatus} />
+              <div>
+                <span className="font-bold text-sm">{buyer.name}</span>
+                <p className="text-[10px] text-muted-foreground mt-0.5 font-medium uppercase tracking-tight">{buyer.city} · {buyer.categories.length} segments</p>
               </div>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-primary/5">
-                {buyer.categories.map((category) => (
-                  <div key={category.name} className="p-6 md:p-8 hover:bg-primary/[0.02] transition-colors relative group">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-4">
-                          <h4 className="font-bold text-xl tracking-tight">{category.name}</h4>
-                          <Badge variant="outline" className={`text-[10px] font-black uppercase tracking-widest px-2 ${
-                            category.status === "red" ? "text-destructive border-destructive/30 bg-destructive/5" : 
-                            category.status === "yellow" ? "text-yellow-600 border-yellow-500/30 bg-yellow-500/5" : "text-green-600 border-green-500/30 bg-green-500/5"
-                          }`}>
-                            {category.status}
-                          </Badge>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-y-4 text-sm">
-                          <div className="space-y-1">
-                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60 flex items-center gap-1.5">
-                              <History className="w-3 h-3" /> Last Order
-                            </div>
-                            <div className="font-bold">{new Date(category.lastOrderDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Gap Duration</div>
-                            <div className={`font-bold ${category.status === "red" ? "text-destructive" : ""}`}>{category.daysSinceLastOrder} days</div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Avg Cycle</div>
-                            <div className="font-bold">{category.avgCycleDays} days</div>
-                          </div>
-                          <div className="space-y-1">
-                            <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60">Lifetime Count</div>
-                            <div className="font-bold">{category.totalOrders} orders</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button 
-                              variant="outline" 
-                              className="h-11 rounded-xl gap-2.5 font-bold border-primary/10 hover:bg-primary/5 transition-all active:scale-95 group-hover:border-primary/30 shadow-sm"
-                              onClick={() => generateMessage(buyer.id, category.name)}
-                            >
-                              <Sparkles className="w-4 h-4 text-purple-500 animate-pulse" />
-                              AI Outreach
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[550px] rounded-3xl border-primary/10 bg-card/95 backdrop-blur-xl shadow-2xl">
-                            <DialogHeader>
-                              <DialogTitle className="flex items-center gap-3 text-2xl font-black tracking-tight">
-                                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
-                                  <Sparkles className="w-5 h-5 text-purple-500" />
-                                </div>
-                                Smart outreach
-                              </DialogTitle>
-                              <DialogDescription className="text-base font-medium">
-                                Drafting personalized communication for {buyer.name}'s {category.name} gap.
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="py-6">
-                              {generating[`${buyer.id}-${category.name}`] ? (
-                                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                                  <div className="relative">
-                                    <Loader2 className="w-12 h-12 animate-spin text-primary opacity-20" />
-                                    <Sparkles className="w-6 h-6 text-purple-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 animate-bounce" />
-                                  </div>
-                                  <p className="mt-6 text-sm font-black uppercase tracking-widest opacity-50">Synthesizing message...</p>
-                                </div>
-                              ) : (
-                                <div className="space-y-4">
-                                  <div className="text-[10px] text-muted-foreground uppercase font-black tracking-widest opacity-60 ml-1">Generated Draft</div>
-                                  <Textarea 
-                                    className="min-h-[220px] rounded-2xl bg-muted/30 border-none p-5 text-base leading-relaxed focus-visible:ring-1 focus-visible:ring-primary/20 shadow-inner"
-                                    value={aiMessages[`${buyer.id}-${category.name}`] || "Intelligence engine failed to generate response."}
-                                    readOnly
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex justify-end gap-3">
-                              <Button variant="ghost" className="rounded-xl font-bold" onClick={() => {
-                                navigator.clipboard.writeText(aiMessages[`${buyer.id}-${category.name}`] || "");
-                              }}>Copy Draft</Button>
-                              <Button className="rounded-xl font-black px-8 shadow-lg shadow-primary/20">Send Email</Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex items-center gap-5">
+              <span className="text-xs font-semibold">
+                {buyer.coldCount > 0 ? (
+                  <span className="text-red-500 font-bold">{buyer.coldCount} cold</span>
+                ) : buyer.warmCount > 0 ? (
+                  <span className="text-yellow-600 font-bold">{buyer.warmCount} warm</span>
+                ) : (
+                  <span className="text-green-600 font-bold">Active</span>
+                )}
+              </span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground opacity-40" />
+            </div>
+          </div>
         ))}
       </div>
     </div>
   );
+};
+
+const StatusIndicator = ({ status }: { status: Status }) => {
+  const colors = {
+    red: "bg-red-500",
+    yellow: "bg-yellow-500",
+    green: "bg-green-500"
+  };
+  return <div className={`w-2 h-2 rounded-full ${colors[status]} shadow-sm`} />;
 };
 
 export default CategoryChurn;

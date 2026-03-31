@@ -91,6 +91,62 @@ app.get("/api/reps/:repId/churn", async ({ params }) => {
     });
 });
 
+// ─── FEATURE 1.5: AI Message for overall churn ─────
+app.post(
+  "/api/reps/:repId/churn/:buyerId/message",
+  async ({ params, body }) => {
+    const { buyerId } = params;
+    const { daysSince, avgCycle } = body as {
+      daysSince: number;
+      avgCycle: number;
+    };
+
+    const buyer = await prisma.buyer.findUnique({
+      where: { id: Number(buyerId) },
+      include: { rep: true },
+    });
+
+    if (!buyer) return { error: "Buyer not found" };
+
+    const prompt = `
+You are a wholesale sales rep writing a short, friendly outreach message to a buyer who hasn't ordered anything recently.
+
+Context:
+- Buyer name: ${buyer.name}
+- City: ${buyer.city}
+- Days since last order: ${daysSince} days
+- Their usual reorder cycle: every ${avgCycle} days
+- Sales rep name: ${buyer.rep.name}
+
+Write a SHORT, warm, professional message.
+Return ONLY valid JSON, no markdown, no extra text:
+{"subject": "...", "body": "..."}
+`;
+
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          max_tokens: 300,
+        }),
+      });
+
+      if (!response.ok) return { error: "Failed to generate AI message" };
+      const data = (await response.json()) as any;
+      return JSON.parse(data?.choices?.[0]?.message?.content || "{}");
+    } catch (error) {
+      return { error: "An unexpected error occurred" };
+    }
+  },
+);
+
 // ─── FEATURE 2: Category Churn (buyer list) ──────
 app.get("/api/reps/:repId/category-churn", async ({ params }) => {
   const buyers = await prisma.buyer.findMany({
@@ -163,12 +219,10 @@ app.get("/api/reps/:repId/category-churn", async ({ params }) => {
       };
     })
     .filter((b) => {
-      if (b.coldCount > 0 || b.warmCount > 0) return true;
-      else {
-        console.log(`Buyer ${b.name} has no issues, skipping`);
-        return false;
-      }
-    }) // only show buyers with issues
+      // Only show buyers who have ordered before (at least one category)
+      // and filter based on status if needed, but here we just want to ensure they have categories
+      return b.categories.length > 0;
+    })
     .sort((a, b) => {
       const statuses: readonly Status[] = ["red", "yellow", "green"];
       const statusDiff =
@@ -202,48 +256,37 @@ You are a wholesale sales rep writing a short, friendly outreach message.
 
 Context:
 - Buyer name: ${buyer.name}
-- City of the Buyer: ${buyer.city}
+- City: ${buyer.city}
 - Category they stopped ordering: ${categoryName}
 - Days since last order in this category: ${daysSince} days
 - Their usual reorder cycle: every ${avgCycle} days
 - How many times they ordered this before: ${totalOrders} times
 - Sales rep name: ${buyer.rep.name}
 
-Write a SHORT (3-4 sentences max), warm, personalised message from the rep to the buyer.
-Reference the specific category gap. Don't be pushy. Sound human.
-Just the message text. No subject line. No greeting prefix. No Emojis, Include the input data we have given to you in that email and make it personalised, use backslash n for new lines.
-  `;
+Write a SHORT (3-4 sentences max), warm, personalised message. Reference the specific category gap.
+Return ONLY valid JSON, no markdown, no extra text:
+{"subject": "...", "body": "..."}
+`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o",
-            messages: [{ role: "user", content: prompt }],
-            max_tokens: 150,
-          }),
-        });
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+          max_tokens: 300,
+        }),
+      });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("OpenAI API Error:", errorData);
-        return { error: "Failed to generate AI message" };
-      }
-
+      if (!response.ok) return { error: "Failed to generate AI message" };
       const data = (await response.json()) as any;
-      const content = data?.choices?.[0]?.message?.content;
-
-      if (!content) {
-        return { error: "No content generated from AI" };
-      }
-
-      return { message: content };
+      return JSON.parse(data?.choices?.[0]?.message?.content || "{}");
     } catch (error) {
-      console.error("Error calling OpenAI API:", error);
       return { error: "An unexpected error occurred" };
     }
   },
