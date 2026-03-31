@@ -14,8 +14,53 @@ datasource db {
   provider = "sqlite"
 }
 
- model User { 
-    id    Int     @id @default(autoincrement()) 
-    email String  @unique
-    name  String?
-  } 
+model Rep {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  region    String
+  buyers    Buyer[]
+  contacts  RepContact[]
+  createdAt DateTime @default(now())
+}
+
+model Buyer {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String
+  city          String
+  region        String
+  repId         Int
+  rep           Rep      @relation(fields: [repId], references: [id])
+  orders        Order[]
+  contacts      RepContact[]
+  createdAt     DateTime @default(now())
+}
+
+model Category {
+  id     Int     @id @default(autoincrement())
+  name   String  @unique   // "Candles", "Lamps", "Rugs"
+  orders Order[]
+}
+
+model Order {
+  id         Int      @id @default(autoincrement())
+  buyerId    Int
+  buyer      Buyer    @relation(fields: [buyerId], references: [id])
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+  amount     Float
+  orderedAt  DateTime
+  createdAt  DateTime @default(now())
+}
+
+model RepContact {
+  id          Int      @id @default(autoincrement())
+  repId       Int
+  rep         Rep      @relation(fields: [repId], references: [id])
+  buyerId     Int
+  buyer       Buyer    @relation(fields: [buyerId], references: [id])
+  contactType String   // "call", "email", "visit"
+  note        String?
+  contactedAt DateTime @default(now())
+}

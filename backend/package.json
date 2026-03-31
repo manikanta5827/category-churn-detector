@@ -15,7 +15,9 @@
     "typescript": "^6.0.2"
   },
   "dependencies": {
+    "@elysiajs/cors": "^1.4.1",
     "@prisma/adapter-libsql": "^7.6.0",
-    "@prisma/client": "^7.6.0"
+    "@prisma/client": "^7.6.0",
+    "elysia": "^1.4.28"
   }
 }
