@@ -1,16 +1,28 @@
 import { prisma } from "./db";
 
 async function main() {
-  // ─── Categories ───────────────────────────────
-  const categories = await Promise.all([
-    prisma.category.create({ data: { name: "Candles" } }),
-    prisma.category.create({ data: { name: "Lamps" } }),
-    prisma.category.create({ data: { name: "Rugs" } }),
-    prisma.category.create({ data: { name: "Vases" } }),
-    prisma.category.create({ data: { name: "Chairs" } }),
-  ]);
+  console.log("Cleaning up database...");
+  await prisma.repContact.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.buyer.deleteMany();
+  await prisma.category.deleteMany();
+  await prisma.rep.deleteMany();
 
-  // ─── Rep ──────────────────────────────────────
+  // ─── Categories ───────────────────────────────
+  console.log("Creating categories...");
+  const categoryNames = [
+    "Candles", "Lamps", "Rugs", "Vases", "Chairs", 
+    "Tables", "Mirrors", "Wall Art", "Pillows", "Throws"
+  ];
+  const categories = await Promise.all(
+    categoryNames.map(name => prisma.category.create({ data: { name } }))
+  );
+  
+  const catMap: Record<string, any> = {};
+  categories.forEach(c => catMap[c.name] = c);
+
+  // ─── Single Rep ───────────────────────────────
+  console.log("Creating single rep...");
   const rep = await prisma.rep.create({
     data: {
       name: "Mark Wilson",
@@ -19,271 +31,104 @@ async function main() {
     },
   });
 
-  // ─── Buyers ───────────────────────────────────
-  const buyers = await Promise.all([
-    prisma.buyer.create({
-      data: {
-        name: "Rustic Home Goods",
-        email: "sarah@rustichome.com",
-        city: "Chicago",
-        region: "Midwest",
-        repId: rep.id,
-      },
-    }),
-    prisma.buyer.create({
-      data: {
-        name: "Midwest Gifts",
-        email: "tom@midwestgifts.com",
-        city: "Detroit",
-        region: "Midwest",
-        repId: rep.id,
-      },
-    }),
-    prisma.buyer.create({
-      data: {
-        name: "Lovenest Lights",
-        email: "amy@lovenest.com",
-        city: "Columbus",
-        region: "Midwest",
-        repId: rep.id,
-      },
-    }),
-    prisma.buyer.create({
-      data: {
-        name: "Tipper's Point",
-        email: "joe@tipperspoint.com",
-        city: "Indianapolis",
-        region: "Midwest",
-        repId: rep.id,
-      },
-    }),
-    prisma.buyer.create({
-      data: {
-        name: "Beauty Homes",
-        email: "lisa@beautyhomes.com",
-        city: "Milwaukee",
-        region: "Midwest",
-        repId: rep.id,
-      },
-    }),
-  ]);
-
   // ─── Helper ───────────────────────────────────
-  // daysAgo(n) → Date object n days in the past
   const daysAgo = (n: number) => {
     const d = new Date();
     d.setDate(d.getDate() - n);
     return d;
   };
 
-  // ─── Orders ───────────────────────────────────
-  // Rustic Home — Candles went cold (last order 71 days ago)
-  // Rugs still active
-  const [candles, lamps, rugs, vases, chairs] = categories;
-  const [rustic, midwest, lovenest, tippers, beauty] = buyers;
+  // ─── Buyers (15) ──────────────────────────────
+  console.log("Creating 15 buyers...");
+  const buyerData = [
+    { name: "Rustic Home Goods", email: "sarah@rustichome.com", city: "Chicago" },
+    { name: "Midwest Gifts", email: "tom@midwestgifts.com", city: "Detroit" },
+    { name: "Lovenest Lights", email: "amy@lovenest.com", city: "Columbus" },
+    { name: "Tipper's Point", email: "joe@tipperspoint.com", city: "Indianapolis" },
+    { name: "Beauty Homes", email: "lisa@beautyhomes.com", city: "Milwaukee" },
+    { name: "Lakeview Decor", email: "kevin@lakeview.com", city: "Chicago" },
+    { name: "Urban Dwelling", email: "mike@urbandwelling.com", city: "Minneapolis" },
+    { name: "Prairie Designs", email: "claire@prairie.com", city: "Des Moines" },
+    { name: "Windy City Wholesalers", email: "dan@windycity.com", city: "Chicago" },
+    { name: "Northern Comforts", email: "beth@northern.com", city: "Madison" },
+    { name: "Heartland Haven", email: "mark@heartland.com", city: "Omaha" },
+    { name: "River North Retail", email: "julia@rivernorth.com", city: "Chicago" },
+    { name: "Grand Avenue Gifts", email: "sam@grandave.com", city: "St. Paul" },
+    { name: "Lakeside Living", email: "nina@lakeside.com", city: "Cleveland" },
+    { name: "Modern Midwest", email: "alex@modernmidwest.com", city: "Kansas City" },
+  ];
 
-  await prisma.order.createMany({
-    data: [
-      // Rustic — Candles: 6 orders then STOPPED 71 days ago
-      {
-        buyerId: rustic.id,
-        categoryId: candles.id,
-        amount: 420,
-        orderedAt: daysAgo(71),
-      },
-      {
-        buyerId: rustic.id,
-        categoryId: candles.id,
-        amount: 390,
-        orderedAt: daysAgo(99),
-      },
-      {
-        buyerId: rustic.id,
-        categoryId: candles.id,
-        amount: 410,
-        orderedAt: daysAgo(127),
-      },
-      {
-        buyerId: rustic.id,
-        categoryId: candles.id,
-        amount: 380,
-        orderedAt: daysAgo(155),
-      },
-      {
-        buyerId: rustic.id,
-        categoryId: candles.id,
-        amount: 400,
-        orderedAt: daysAgo(183),
-      },
-      {
-        buyerId: rustic.id,
-        categoryId: candles.id,
-        amount: 430,
-        orderedAt: daysAgo(211),
-      },
+  const createdBuyers = await Promise.all(
+    buyerData.map(b => prisma.buyer.create({ 
+      data: { ...b, region: "Midwest", repId: rep.id } 
+    }))
+  );
 
-      // Rustic — Rugs: still active
-      {
-        buyerId: rustic.id,
-        categoryId: rugs.id,
-        amount: 1200,
-        orderedAt: daysAgo(8),
-      },
-      {
-        buyerId: rustic.id,
-        categoryId: rugs.id,
-        amount: 1100,
-        orderedAt: daysAgo(38),
-      },
+  // ─── Orders (approx 60) ────────────────────────
+  console.log("Creating dense order data...");
+  const orderEntries: any[] = [];
 
-      // Rustic — Lamps: went cold 55 days ago
-      {
-        buyerId: rustic.id,
-        categoryId: lamps.id,
-        amount: 600,
-        orderedAt: daysAgo(55),
-      },
-      {
-        buyerId: rustic.id,
-        categoryId: lamps.id,
-        amount: 580,
-        orderedAt: daysAgo(90),
-      },
-      {
-        buyerId: rustic.id,
-        categoryId: lamps.id,
-        amount: 610,
-        orderedAt: daysAgo(125),
-      },
-
-      // Midwest Gifts — Rugs went cold
-      {
-        buyerId: midwest.id,
-        categoryId: rugs.id,
-        amount: 900,
-        orderedAt: daysAgo(62),
-      },
-      {
-        buyerId: midwest.id,
-        categoryId: rugs.id,
-        amount: 850,
-        orderedAt: daysAgo(94),
-      },
-      {
-        buyerId: midwest.id,
-        categoryId: rugs.id,
-        amount: 920,
-        orderedAt: daysAgo(126),
-      },
-
-      // Midwest Gifts — Candles still active
-      {
-        buyerId: midwest.id,
-        categoryId: candles.id,
-        amount: 300,
-        orderedAt: daysAgo(5),
-      },
-      {
-        buyerId: midwest.id,
-        categoryId: candles.id,
-        amount: 280,
-        orderedAt: daysAgo(35),
-      },
-
-      // Lovenest — Vases went cold
-      {
-        buyerId: lovenest.id,
-        categoryId: vases.id,
-        amount: 500,
-        orderedAt: daysAgo(48),
-      },
-      {
-        buyerId: lovenest.id,
-        categoryId: vases.id,
-        amount: 480,
-        orderedAt: daysAgo(78),
-      },
-      {
-        buyerId: lovenest.id,
-        categoryId: vases.id,
-        amount: 510,
-        orderedAt: daysAgo(108),
-      },
-
-      // Lovenest — Lamps active
-      {
-        buyerId: lovenest.id,
-        categoryId: lamps.id,
-        amount: 700,
-        orderedAt: daysAgo(10),
-      },
-
-      // Tippers — Chairs went cold
-      {
-        buyerId: tippers.id,
-        categoryId: chairs.id,
-        amount: 2000,
-        orderedAt: daysAgo(55),
-      },
-      {
-        buyerId: tippers.id,
-        categoryId: chairs.id,
-        amount: 1900,
-        orderedAt: daysAgo(90),
-      },
-
-      // Beauty Homes — all active (healthy buyer)
-      {
-        buyerId: beauty.id,
-        categoryId: candles.id,
-        amount: 350,
-        orderedAt: daysAgo(7),
-      },
-      {
-        buyerId: beauty.id,
-        categoryId: lamps.id,
-        amount: 800,
-        orderedAt: daysAgo(12),
-      },
-      {
-        buyerId: beauty.id,
-        categoryId: rugs.id,
-        amount: 1500,
-        orderedAt: daysAgo(15),
-      },
-    ],
+  createdBuyers.forEach((buyer, index) => {
+    // Each buyer gets 3-5 categories they buy from
+    const buyerCats = categories.slice(index % 5, (index % 5) + 4);
+    
+    buyerCats.forEach((cat, cIdx) => {
+      const isChurned = (index + cIdx) % 3 === 0; // Simulate some churn patterns
+      const isHealthy = !isChurned;
+      
+      if (isHealthy) {
+        // Active orders
+        orderEntries.push({ buyerId: buyer.id, categoryId: cat.id, amount: 200 + Math.random() * 800, orderedAt: daysAgo(5 + Math.random() * 20) });
+        orderEntries.push({ buyerId: buyer.id, categoryId: cat.id, amount: 200 + Math.random() * 800, orderedAt: daysAgo(35 + Math.random() * 20) });
+        orderEntries.push({ buyerId: buyer.id, categoryId: cat.id, amount: 200 + Math.random() * 800, orderedAt: daysAgo(65 + Math.random() * 20) });
+      } else {
+        // Churned orders (last one long ago)
+        orderEntries.push({ buyerId: buyer.id, categoryId: cat.id, amount: 200 + Math.random() * 800, orderedAt: daysAgo(95 + Math.random() * 30) });
+        orderEntries.push({ buyerId: buyer.id, categoryId: cat.id, amount: 200 + Math.random() * 800, orderedAt: daysAgo(130 + Math.random() * 30) });
+        orderEntries.push({ buyerId: buyer.id, categoryId: cat.id, amount: 200 + Math.random() * 800, orderedAt: daysAgo(170 + Math.random() * 30) });
+      }
+    });
   });
 
-  // ─── Rep Contacts ─────────────────────────────
-  await prisma.repContact.createMany({
-    data: [
-      {
+  await prisma.order.createMany({ data: orderEntries });
+
+  // ─── Rep Contacts (approx 20) ──────────────────
+  console.log("Creating rep contact history...");
+  const contactEntries: any[] = [];
+  const contactTypes = ["call", "email", "visit"];
+
+  createdBuyers.forEach((buyer, index) => {
+    // At least one contact for every buyer
+    contactEntries.push({
+      repId: rep.id,
+      buyerId: buyer.id,
+      contactType: contactTypes[index % 3],
+      note: `Regular check-in with ${buyer.name}.`,
+      contactedAt: daysAgo(10 + Math.random() * 50)
+    });
+
+    // Extra contacts for churned-looking ones
+    if (index % 3 === 0) {
+      contactEntries.push({
         repId: rep.id,
-        buyerId: rustic.id,
+        buyerId: buyer.id,
         contactType: "call",
-        note: "Discussed spring collection",
-        contactedAt: daysAgo(45),
-      },
-      {
-        repId: rep.id,
-        buyerId: midwest.id,
-        contactType: "email",
-        note: "Sent catalog",
-        contactedAt: daysAgo(20),
-      },
-      {
-        repId: rep.id,
-        buyerId: beauty.id,
-        contactType: "visit",
-        note: "In person meeting",
-        contactedAt: daysAgo(5),
-      },
-    ],
+        note: `Attempted to discuss recent drop in orders.`,
+        contactedAt: daysAgo(2 + Math.random() * 5)
+      });
+    }
   });
 
-  console.log("✅ Seed complete");
+  await prisma.repContact.createMany({ data: contactEntries });
+
+  console.log(`✅ Seed complete: 1 Rep, ${createdBuyers.length} Buyers, ${categories.length} Categories, ${orderEntries.length} Orders, ${contactEntries.length} Contacts.`);
 }
 
 main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
