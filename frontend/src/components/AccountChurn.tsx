@@ -153,36 +153,35 @@ export const AccountChurn = () => {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      {/* ── Summary banner ── */}
-      <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-5 shadow-sm">
-        <h2 className="text-base font-semibold tracking-tight mb-3">
-          Buyer Health Overview
-        </h2>
-        <div className="flex items-center gap-6">
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* ── Compact Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-wider text-foreground/90">
+            Account Churn
+          </h2>
+          <p className="text-[11px] text-muted-foreground font-medium">
+            Risk analysis based on historical reorder cycles
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
           <StatPill
-            icon={<TrendingDown className="h-3.5 w-3.5" />}
+            icon={<TrendingDown className="h-3 w-3" />}
             value={redCount}
-            label="At Risk"
-            color="text-rose-600 bg-rose-50 border-rose-200"
+            label="Risk"
+            color="text-rose-600 bg-rose-50/50 border-rose-200"
           />
           <StatPill
-            icon={<Clock className="h-3.5 w-3.5" />}
+            icon={<Clock className="h-3 w-3" />}
             value={yellowCount}
             label="Drifting"
-            color="text-amber-600 bg-amber-50 border-amber-200"
-          />
-          <StatPill
-            icon={<CheckCircle2 className="h-3.5 w-3.5" />}
-            value={data.filter((b) => b.status === "green").length}
-            label="Healthy"
-            color="text-emerald-600 bg-emerald-50 border-emerald-200"
+            color="text-amber-600 bg-amber-50/50 border-amber-200"
           />
         </div>
       </div>
 
       {/* ── Buyer list ── */}
-      <div className="rounded-2xl border overflow-hidden shadow-sm divide-y divide-border/40 bg-card">
+      <div className="rounded-xl border overflow-hidden shadow-sm divide-y divide-border/40 bg-card">
         {data.map((buyer, i) => {
           const cfg = STATUS_CONFIG[buyer.status];
           const pct = riskPercent(buyer);

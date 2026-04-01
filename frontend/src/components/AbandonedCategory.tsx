@@ -314,34 +314,31 @@ export const AbandonedCategory = () => {
   // ── Level 1: Buyer List ───────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      {/* Summary banner */}
-      <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-5 shadow-sm">
-        <h2 className="text-base font-semibold tracking-tight mb-1">
-          Abandoned Category
-        </h2>
-        <p className="text-[12px] text-muted-foreground mb-3">
-          Buyers who are still active — but silently abandoning product
-          categories
-        </p>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 text-xs font-bold">
-            <TrendingDown className="h-3.5 w-3.5" />
-            <span className="text-base font-black">
-              {data.filter((b) => b.coldCount > 0).length}
-            </span>
-            <span className="font-medium opacity-80">buyers affected</span>
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Compact Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-wider text-foreground/90">
+            Abandoned Categories
+          </h2>
+          <p className="text-[11px] text-muted-foreground font-medium">
+            Active buyers with silent product segments
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-rose-50/50 text-rose-600 text-[10px] font-bold">
+            <TrendingDown className="h-3 w-3" />
+            <span>{data.filter((b) => b.coldCount > 0).length} buyers</span>
           </div>
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 text-rose-600 text-xs font-bold">
-            <Layers className="h-3.5 w-3.5" />
-            <span className="text-base font-black">{coldTotal}</span>
-            <span className="font-medium opacity-80">cold categories</span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-rose-50/50 text-rose-600 text-[10px] font-bold">
+            <Layers className="h-3 w-3" />
+            <span>{coldTotal} cold segments</span>
           </div>
         </div>
       </div>
 
       {/* Buyer list */}
-      <div className="rounded-2xl border overflow-hidden shadow-sm divide-y divide-border/40 bg-card">
+      <div className="rounded-xl border overflow-hidden shadow-sm divide-y divide-border/40 bg-card">
         {data.map((buyer, i) => {
           const bar = BUYER_STATUS_BAR[buyer.buyerStatus];
 

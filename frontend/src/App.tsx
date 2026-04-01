@@ -43,7 +43,7 @@ function App() {
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-8 py-10 pb-20">
+      <main className="max-w-4xl mx-auto px-8 pt-6 pb-20">
         <Routes>
           <Route path="/" element={<RepList />} />
           <Route path="/:repId" element={<RepDashboard />} />

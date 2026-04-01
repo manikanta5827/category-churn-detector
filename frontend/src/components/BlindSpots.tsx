@@ -234,41 +234,36 @@ const BlindSpots = () => {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-3xl border bg-card p-5 shadow-sm">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Critical Gaps</p>
-          <div className="flex items-end gap-2">
-            <h3 className="text-3xl font-black leading-none">{blindSpotCount}</h3>
-            <span className="text-xs font-bold text-rose-500 pb-0.5">High-Value Gaps</span>
-          </div>
+    <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-10">
+      {/* Compact Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-wider text-foreground/90">
+            Blind Spot Detector
+          </h2>
+          <p className="text-[11px] text-muted-foreground font-medium">
+            Purchase Power vs. Rep Attention Matrix
+          </p>
         </div>
-        <div className="rounded-3xl border bg-card p-5 shadow-sm bg-gradient-to-br from-background to-emerald-50/30">
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Active Portfolio</p>
-          <div className="flex items-end gap-2">
-            <h3 className="text-3xl font-black leading-none">{data.length}</h3>
-            <span className="text-xs font-bold text-emerald-600 pb-0.5">Accounts Tracked</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-rose-50/50 text-rose-600 text-[10px] font-bold">
+            <AlertCircle className="h-3 w-3" />
+            <span>{blindSpotCount} Critical Gaps</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border bg-emerald-50/50 text-emerald-600 text-[10px] font-bold">
+            <Target className="h-3 w-3" />
+            <span>{data.length} Accounts</span>
           </div>
         </div>
       </div>
 
-      <div className={`rounded-3xl border bg-card shadow-sm overflow-hidden transition-all duration-1000 ${chartReady ? "opacity-100 scale-100" : "opacity-0 scale-[0.98]"}`}>
-        <div className="p-6 pb-2 border-b flex items-center justify-between bg-muted/20">
-          <div>
-            <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-              <RadarIcon className="h-4 w-4 text-primary" />
-              Growth Radar
-            </h3>
-            <p className="text-[11px] text-muted-foreground font-medium mt-1">Comparing Purchase Power vs. Rep Attention</p>
+      <div className={`rounded-xl border bg-card shadow-sm overflow-hidden transition-all duration-1000 ${chartReady ? "opacity-100 scale-100" : "opacity-0 scale-[0.98]"}`}>
+        <div className="relative p-6 pt-10">
+          <div className="absolute top-6 left-10 opacity-30 pointer-events-none">
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-rose-500">Untapped Potential</span>
           </div>
-        </div>
-
-        <div className="relative p-10 pt-14">
-          <div className="absolute top-12 left-16 opacity-30 pointer-events-none">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-rose-500">Untapped Potential</span>
-          </div>
-          <div className="absolute bottom-12 right-16 opacity-30 pointer-events-none">
-            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-600">Maximized Relationships</span>
+          <div className="absolute bottom-6 right-10 opacity-30 pointer-events-none">
+            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-600">Maximized</span>
           </div>
 
           <div className="relative border rounded-3xl bg-muted/5 p-4 overflow-hidden">

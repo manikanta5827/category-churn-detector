@@ -31,36 +31,36 @@ export default function RepDashboard() {
 
   return (
     <div className="animate-in fade-in duration-700">
-      <div className="mb-10 flex flex-col items-center text-center space-y-4">
-        <button
-          onClick={() => navigate("/")}
-          className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-background hover:bg-muted transition-all text-[10px] font-black uppercase tracking-widest active:scale-95"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Switch Representative
-        </button>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-center gap-3 text-primary">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-6 border-b border-border/50">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-primary">
             <UserCircle2 className="h-5 w-5" />
-            <h2 className="text-2xl font-black tracking-tighter sm:text-3xl">
+            <h2 className="text-lg font-black tracking-tight uppercase">
               {repName || "Representative"}'s Console
             </h2>
           </div>
-          <p className="text-muted-foreground text-[13px] font-medium max-w-[440px] mx-auto leading-relaxed">
+          <p className="text-muted-foreground text-[11px] font-medium max-w-[400px]">
             Real-time analysis of account health, category abandonment, and
             portfolio blind spots.
           </p>
         </div>
+
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center self-start md:self-center gap-2 px-3 py-2 rounded-xl border bg-background hover:bg-muted transition-all text-[9px] font-black uppercase tracking-widest active:scale-95 shadow-sm"
+        >
+          <ArrowLeft className="h-3 w-3" />
+          Switch Representative
+        </button>
       </div>
 
       <Tabs
         value={currentTab}
         onValueChange={handleTabChange}
-        className="space-y-10"
+        className="space-y-6"
       >
-        <div className="flex justify-center sticky top-20 z-40 bg-background/80 backdrop-blur-sm py-2 rounded-2xl -mx-4 px-4 border border-transparent hover:border-border/20 transition-all">
-          <TabsList className="h-11 p-1 bg-muted/60 border rounded-2xl w-full max-w-md shadow-sm">
+        <div className="flex justify-start sticky top-16 z-40 bg-background/80 backdrop-blur-sm py-2 rounded-2xl -mx-4 px-4 transition-all">
+          <TabsList className="h-10 p-1 bg-muted/60 border rounded-xl w-full max-w-md shadow-sm">
             <TabsTrigger
               value="account"
               className="rounded-xl px-6 text-[11px] font-bold uppercase tracking-tight data-[state=active]:shadow-md transition-all"
