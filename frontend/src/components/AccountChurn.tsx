@@ -18,7 +18,7 @@ import {
   X,
   History,
 } from "lucide-react";
-import { buildGmailLink } from "./CategoryChurn";
+import { buildGmailLink } from "./AbandonedCategory";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AccountChurn } from "./AccountChurn";
-import { CategoryChurn } from "./CategoryChurn";
+import { AbandonedCategory } from "./AbandonedCategory";
 import BlindSpots from "./BlindSpots";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, UserCircle2 } from "lucide-react";
@@ -93,7 +93,7 @@ export default function RepDashboard() {
             value="category"
             className="focus-visible:outline-none outline-none ring-0"
           >
-            <CategoryChurn />
+            <AbandonedCategory />
           </TabsContent>
           <TabsContent
             value="blind"

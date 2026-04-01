@@ -67,7 +67,7 @@ const missedCycles = (cat: Category) =>
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const CategoryChurn = () => {
+export const AbandonedCategory = () => {
   const { repId } = useParams();
   const [data, setData] = useState<BuyerCategoryChurnItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -609,4 +609,4 @@ const CategoryDetailPanel = ({
   );
 };
 
-export default CategoryChurn;
+export default AbandonedCategory;
