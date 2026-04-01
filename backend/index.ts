@@ -13,6 +13,13 @@ const app = new Elysia().use(logixlysia());
 
 app.use(cors());
 
+// ─── GET All Reps ─────────────────────────────
+app.get("/api/reps", async () => {
+  return await prisma.rep.findMany({
+    orderBy: { name: "asc" },
+  });
+});
+
 // ─── Helper: days between two dates ──────────────
 function daysBetween(date1: Date, date2: Date): number {
   return Math.floor(
@@ -30,7 +37,7 @@ function getCategoryStatus(lastOrderDate: Date, avgCycleDays: number): Status {
   return "green";
 }
 
-// ─── FEATURE 1: Overall Churn ────────────────────
+// ─── FEATURE 1: Account Churn ────────────────────
 app.get("/api/reps/:repId/churn", async ({ params }) => {
   const buyers = await prisma.buyer.findMany({
     where: { repId: Number(params.repId) },
@@ -91,7 +98,7 @@ app.get("/api/reps/:repId/churn", async ({ params }) => {
     });
 });
 
-// ─── FEATURE 1.5: AI Message for overall churn ─────
+// ─── FEATURE 1.5: AI Message for Account churn ─────
 app.post(
   "/api/reps/:repId/churn/:buyerId/message",
   async ({ params, body }) => {
@@ -206,7 +213,7 @@ app.get("/api/reps/:repId/category-churn", async ({ params }) => {
       const coldCount = categories.filter((c) => c.status === "red").length;
       const warmCount = categories.filter((c) => c.status === "yellow").length;
 
-      // overall buyer status
+      // Account buyer status
       const buyerStatus =
         coldCount > 0 ? "red" : warmCount > 0 ? "yellow" : "green";
 
@@ -467,7 +474,7 @@ app.get("/api/reps/:repId/blind-spots", async ({ params }) => {
 
   return raw.map((buyer, i) => {
     // ── Potential Score ──
-    // Total revenue (35%): how much has this buyer spent overall
+    // Total revenue (35%): how much has this buyer spent Account
     // Avg order size (25%): are they a high-value buyer per transaction
     // Order frequency (25%): how regularly do they order
     // Growth trend (15%): are they growing or shrinking
