@@ -3,6 +3,7 @@ import type { BuyerChurnItem, Status } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { RelationshipSheet } from "./RelationshipSheet";
 import {
   Loader2,
   AlertTriangle,
@@ -14,6 +15,7 @@ import {
   TrendingDown,
   CheckCircle2,
   X,
+  History,
 } from "lucide-react";
 import { buildGmailLink } from "./CategoryChurn";
 
@@ -81,13 +83,18 @@ export const OverallChurn = () => {
   );
   const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [isRelationshipOpen, setIsRelationshipOpen] = useState(false);
 
-  useEffect(() => {
+  const fetchData = () => {
     fetch("http://localhost:3040/api/reps/1/churn")
       .then((r) => r.json())
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
 
   const fetchAiMessage = async (buyer: BuyerChurnItem) => {
@@ -115,7 +122,11 @@ export const OverallChurn = () => {
   };
 
   const handleOpen = (buyer: BuyerChurnItem) => {
-    if (buyer.status === "green") return;
+    if (buyer.status === "green") {
+      setSelectedBuyer(buyer);
+      setAiDraft(null);
+      return;
+    }
     setSelectedBuyer(buyer);
     setAiDraft(null);
     fetchAiMessage(buyer);
@@ -173,7 +184,7 @@ export const OverallChurn = () => {
         {data.map((buyer, i) => {
           const cfg = STATUS_CONFIG[buyer.status];
           const pct = riskPercent(buyer);
-          const clickable = buyer.status !== "green";
+          const clickable = true; // All buyers clickable now to see history
 
           return (
             <div
@@ -181,19 +192,15 @@ export const OverallChurn = () => {
               style={{ animationDelay: `${i * 40}ms` }}
               className={[
                 "animate-in fade-in slide-in-from-left-1 duration-300",
-                "relative flex items-center gap-4 px-5 py-4 transition-all",
-                clickable
-                  ? "hover:bg-muted/40 cursor-pointer active:scale-[0.995]"
-                  : "opacity-60",
+                "relative flex items-center gap-4 px-5 py-4 transition-all hover:bg-muted/40 cursor-pointer active:scale-[0.995]",
+                buyer.status === "green" && "opacity-80",
               ].join(" ")}
               onClick={() => handleOpen(buyer)}
             >
               {/* risk bar on left edge */}
-              {clickable && (
-                <div
-                  className={`absolute left-0 top-0 bottom-0 w-[3px] ${cfg.bar} opacity-70 rounded-r-full`}
-                />
-              )}
+              <div
+                className={`absolute left-0 top-0 bottom-0 w-[3px] ${cfg.bar} opacity-70 rounded-r-full`}
+              />
 
               {/* dot */}
               <div className="relative shrink-0">
@@ -229,14 +236,12 @@ export const OverallChurn = () => {
                 </p>
 
                 {/* progress bar */}
-                {clickable && (
-                  <div className="mt-2 h-1 w-full max-w-[180px] bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${cfg.bar} rounded-full transition-all duration-700`}
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                )}
+                <div className="mt-2 h-1 w-full max-w-[180px] bg-muted rounded-full overflow-hidden">
+                  <div
+                    className={`h-full ${cfg.bar} rounded-full transition-all duration-700`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
               </div>
 
               {/* right side */}
@@ -257,9 +262,7 @@ export const OverallChurn = () => {
                     </p>
                   </div>
                 )}
-                {clickable && (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
-                )}
+                <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
               </div>
             </div>
           );
@@ -284,10 +287,26 @@ export const OverallChurn = () => {
               generating={generating}
               onDraftChange={setAiDraft}
               onClose={() => setSelectedBuyer(null)}
+              onRelationshipOpen={() => setIsRelationshipOpen(true)}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      {/* ── Relationship sheet ── */}
+      {selectedBuyer && (
+        <RelationshipSheet
+          isOpen={isRelationshipOpen}
+          onOpenChange={setIsRelationshipOpen}
+          buyer={{
+            id: selectedBuyer.id,
+            name: selectedBuyer.name,
+            city: selectedBuyer.city,
+            email: selectedBuyer.email,
+          }}
+          onLogSuccess={() => fetchData()}
+        />
+      )}
     </div>
   );
 };
@@ -300,12 +319,14 @@ const BuyerDetailPanel = ({
   generating,
   onDraftChange,
   onClose,
+  onRelationshipOpen,
 }: {
   buyer: BuyerChurnItem;
   aiDraft: AiDraft | null;
   generating: boolean;
   onDraftChange: (d: AiDraft) => void;
   onClose: () => void;
+  onRelationshipOpen: () => void;
 }) => {
   const cfg = STATUS_CONFIG[buyer.status];
   const overdue = overdueDays(buyer);
@@ -368,88 +389,117 @@ const BuyerDetailPanel = ({
         </div>
       </div>
 
-      {/* AI draft section */}
+      {/* AI draft section or Health summary */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {/* AI insight pill */}
-        <div className="flex items-start gap-2.5 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/40 rounded-xl p-3.5">
-          <AlertTriangle className="h-4 w-4 text-violet-500 shrink-0 mt-0.5" />
-          <p className="text-[11.5px] text-violet-800 dark:text-violet-300 leading-relaxed">
-            Buyer has exceeded their normal reorder cycle by{" "}
-            <strong>{overdue} days</strong>. High probability of competitive
-            switching — reach out now.
-          </p>
-        </div>
-
-        {/* Draft label */}
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            AI-drafted outreach
-          </p>
-          <div className="flex items-center gap-1 text-[10px] text-violet-500 font-semibold">
-            <Sparkles className="h-3 w-3" />
-            <span>Generated</span>
-          </div>
-        </div>
-
-        {generating ? (
-          <div className="h-[160px] flex flex-col items-center justify-center rounded-xl border bg-muted/20 gap-3">
-            <div className="relative">
-              <Loader2 className="h-5 w-5 animate-spin text-violet-400" />
-              <div className="absolute inset-0 blur-md bg-violet-400/30 rounded-full" />
-            </div>
-            <div className="space-y-1 text-center">
-              <p className="text-[11px] font-semibold text-muted-foreground">
-                Writing personalised message
-              </p>
-              <p className="text-[10px] text-muted-foreground/60">
-                Analysing buyer history...
+        {buyer.status !== "green" ? (
+          <>
+            {/* AI insight pill */}
+            <div className="flex items-start gap-2.5 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/40 rounded-xl p-3.5">
+              <AlertTriangle className="h-4 w-4 text-violet-500 shrink-0 mt-0.5" />
+              <p className="text-[11.5px] text-violet-800 dark:text-violet-300 leading-relaxed">
+                Buyer has exceeded their normal reorder cycle by{" "}
+                <strong>{overdue} days</strong>. High probability of competitive
+                switching — reach out now.
               </p>
             </div>
-          </div>
+
+            {/* Draft label */}
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                AI-drafted outreach
+              </p>
+              <div className="flex items-center gap-1 text-[10px] text-violet-500 font-semibold">
+                <Sparkles className="h-3 w-3" />
+                <span>Generated</span>
+              </div>
+            </div>
+
+            {generating ? (
+              <div className="h-[160px] flex flex-col items-center justify-center rounded-xl border bg-muted/20 gap-3">
+                <div className="relative">
+                  <Loader2 className="h-5 w-5 animate-spin text-violet-400" />
+                  <div className="absolute inset-0 blur-md bg-violet-400/30 rounded-full" />
+                </div>
+                <div className="space-y-1 text-center">
+                  <p className="text-[11px] font-semibold text-muted-foreground">
+                    Writing personalised message
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/60">
+                    Analysing buyer history...
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <input
+                  className="w-full text-xs font-semibold px-3 py-2.5 bg-muted/40 rounded-lg border-transparent border focus:border-violet-300 focus:bg-background outline-none transition-all"
+                  placeholder="Subject line..."
+                  value={aiDraft?.subject ?? ""}
+                  onChange={(e) =>
+                    aiDraft &&
+                    onDraftChange({ ...aiDraft, subject: e.target.value })
+                  }
+                />
+                <Textarea
+                  className="min-h-[120px] text-[12px] leading-relaxed bg-muted/40 rounded-lg border-transparent focus:border-violet-300 focus:bg-background p-3 resize-none outline-none transition-all"
+                  placeholder="Message body..."
+                  value={aiDraft?.body ?? ""}
+                  onChange={(e) =>
+                    aiDraft &&
+                    onDraftChange({ ...aiDraft, body: e.target.value })
+                  }
+                />
+              </div>
+            )}
+          </>
         ) : (
-          <div className="space-y-2">
-            <input
-              className="w-full text-xs font-semibold px-3 py-2.5 bg-muted/40 rounded-lg border-transparent border focus:border-violet-300 focus:bg-background outline-none transition-all"
-              placeholder="Subject line..."
-              value={aiDraft?.subject ?? ""}
-              onChange={(e) =>
-                aiDraft &&
-                onDraftChange({ ...aiDraft, subject: e.target.value })
-              }
-            />
-            <Textarea
-              className="min-h-[120px] text-[12px] leading-relaxed bg-muted/40 rounded-lg border-transparent focus:border-violet-300 focus:bg-background p-3 resize-none outline-none transition-all"
-              placeholder="Message body..."
-              value={aiDraft?.body ?? ""}
-              onChange={(e) =>
-                aiDraft && onDraftChange({ ...aiDraft, body: e.target.value })
-              }
-            />
+          <div className="h-[200px] flex flex-col items-center justify-center text-center p-6 bg-emerald-50/30 rounded-2xl border border-dashed border-emerald-200">
+            <CheckCircle2 className="h-8 w-8 text-emerald-500 mb-3" />
+            <h4 className="font-bold text-emerald-800 text-sm">
+              Account is Healthy
+            </h4>
+            <p className="text-xs text-emerald-600/80 mt-1 leading-relaxed">
+              Relationship is currently stable. Use the log to record your
+              routine touchpoints.
+            </p>
           </div>
         )}
       </div>
 
       {/* Footer actions */}
       <div className="p-4 border-t bg-muted/20 flex gap-2.5">
+        {buyer.status !== "green" && (
+          <button
+            disabled={!aiDraft || generating}
+            onClick={() => {
+              if (aiDraft) {
+                window.open(
+                  buildGmailLink(buyer.email, aiDraft.subject, aiDraft.body),
+                  "_blank",
+                );
+              }
+            }}
+            className={[
+              "flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm",
+              aiDraft && !generating
+                ? "bg-violet-600 hover:bg-violet-700 text-white shadow-violet-200"
+                : "bg-muted text-muted-foreground cursor-not-allowed",
+            ].join(" ")}
+          >
+            <Send className="h-3.5 w-3.5" />
+            Send via Gmail
+          </button>
+        )}
+
         <button
-          disabled={!aiDraft || generating}
-          onClick={() => {
-            if (aiDraft) {
-              window.open(
-                buildGmailLink(buyer.email, aiDraft.subject, aiDraft.body),
-                "_blank",
-              );
-            }
-          }}
+          onClick={onRelationshipOpen}
           className={[
-            "flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm",
-            aiDraft && !generating
-              ? "bg-violet-600 hover:bg-violet-700 text-white shadow-violet-200"
-              : "bg-muted text-muted-foreground cursor-not-allowed",
+            "h-10 px-4 rounded-xl border text-xs font-bold bg-background hover:bg-muted transition-colors flex items-center gap-2",
+            buyer.status === "green" && "flex-1",
           ].join(" ")}
         >
-          <Send className="h-3.5 w-3.5" />
-          Send via Gmail
+          <History className="h-3.5 w-3.5 text-muted-foreground" />
+          {buyer.status === "green" ? "Relationship History" : "Log Activity"}
         </button>
 
         <button

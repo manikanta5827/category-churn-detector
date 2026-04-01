@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import type { BlindSpotItem } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RelationshipSheet } from "./RelationshipSheet";
 import {
   ArrowLeft,
   TrendingUp,
@@ -23,6 +24,7 @@ import {
   Calendar,
   AlertCircle,
   Zap,
+  History,
 } from "lucide-react";
 
 // ─── Logic ────────────────────────────────────────────────────────────────────
@@ -127,8 +129,9 @@ const BlindSpots = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBuyer, setSelectedBuyer] = useState<BlindSpotItem | null>(null);
   const [chartReady, setChartReady] = useState(false);
+  const [isRelationshipOpen, setIsRelationshipOpen] = useState(false);
 
-  useEffect(() => {
+  const fetchData = () => {
     fetch("http://localhost:3040/api/reps/1/blind-spots")
       .then((r) => r.json())
       .then((d) => {
@@ -137,6 +140,10 @@ const BlindSpots = () => {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
 
   if (loading) {
@@ -195,11 +202,31 @@ const BlindSpots = () => {
             <InfoItem icon={<Phone />} label="Last Interaction" value={selectedBuyer.lastContactType ?? "No recent logs"} />
           </div>
 
-          <button className="w-full h-12 rounded-2xl bg-primary text-primary-foreground font-black text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-xl shadow-primary/20">
-            <Mail className="h-4 w-4" />
-            Bridge the Gap Now
-          </button>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => setIsRelationshipOpen(true)}
+              className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground font-black text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-xl shadow-primary/20"
+            >
+              <History className="h-4 w-4" />
+              Manage Relationship
+            </button>
+            <button className="w-12 h-12 rounded-2xl border bg-background hover:bg-muted flex items-center justify-center transition-colors">
+              <Mail className="h-4 w-4 text-muted-foreground" />
+            </button>
+          </div>
         </div>
+
+        <RelationshipSheet
+          isOpen={isRelationshipOpen}
+          onOpenChange={setIsRelationshipOpen}
+          buyer={{
+            id: selectedBuyer.id,
+            name: selectedBuyer.name,
+            city: selectedBuyer.city,
+            email: selectedBuyer.email,
+          }}
+          onLogSuccess={() => fetchData()}
+        />
       </div>
     );
   }

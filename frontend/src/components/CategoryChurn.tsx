@@ -3,6 +3,7 @@ import type { BuyerCategoryChurnItem, Category, Status } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { RelationshipSheet } from "./RelationshipSheet";
 import {
   Loader2,
   ChevronRight,
@@ -14,6 +15,7 @@ import {
   Layers,
   AlertTriangle,
   TrendingDown,
+  History,
 } from "lucide-react";
 
 // ─── Gmail helper ─────────────────────────────────────────────────────────────
@@ -74,13 +76,18 @@ export const CategoryChurn = () => {
   );
   const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [isRelationshipOpen, setIsRelationshipOpen] = useState(false);
 
-  useEffect(() => {
+  const fetchData = () => {
     fetch("http://localhost:3040/api/reps/1/category-churn")
       .then((r) => r.json())
       .then(setData)
       .catch(console.error)
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
 
   const fetchAiMessage = async (
@@ -142,23 +149,32 @@ export const CategoryChurn = () => {
     return (
       <div className="space-y-5 animate-in fade-in slide-in-from-right-2 duration-300">
         {/* Back header */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setSelectedBuyer(null)}
-            className="flex items-center justify-center h-8 w-8 rounded-xl border bg-background hover:bg-muted transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-          <div>
-            <h2 className="font-bold text-base leading-tight">
-              {selectedBuyer.name}
-            </h2>
-            <p className="text-[11px] text-muted-foreground">
-              {selectedBuyer.city} · {selectedBuyer.coldCount} cold{" "}
-              {selectedBuyer.warmCount > 0 &&
-                `· ${selectedBuyer.warmCount} drifting`}
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedBuyer(null)}
+              className="flex items-center justify-center h-8 w-8 rounded-xl border bg-background hover:bg-muted transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+            <div>
+              <h2 className="font-bold text-base leading-tight">
+                {selectedBuyer.name}
+              </h2>
+              <p className="text-[11px] text-muted-foreground">
+                {selectedBuyer.city} · {selectedBuyer.coldCount} cold{" "}
+                {selectedBuyer.warmCount > 0 &&
+                  `· ${selectedBuyer.warmCount} drifting`}
+              </p>
+            </div>
           </div>
+          <button
+            onClick={() => setIsRelationshipOpen(true)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-widest bg-background hover:bg-muted transition-all active:scale-95"
+          >
+            <History className="h-3.5 w-3.5" />
+            Relationship History
+          </button>
         </div>
 
         {/* Category heatmap rows */}
@@ -271,10 +287,24 @@ export const CategoryChurn = () => {
                   setSelectedCat(null);
                   setAiDraft(null);
                 }}
+                onRelationshipOpen={() => setIsRelationshipOpen(true)}
               />
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Relationship sheet */}
+        <RelationshipSheet
+          isOpen={isRelationshipOpen}
+          onOpenChange={setIsRelationshipOpen}
+          buyer={{
+            id: selectedBuyer.id,
+            name: selectedBuyer.name,
+            city: selectedBuyer.city,
+            email: selectedBuyer.email,
+          }}
+          onLogSuccess={() => fetchData()}
+        />
       </div>
     );
   }
@@ -383,6 +413,7 @@ const CategoryDetailPanel = ({
   generating,
   onDraftChange,
   onClose,
+  onRelationshipOpen,
 }: {
   buyer: BuyerCategoryChurnItem;
   category: Category;
@@ -390,6 +421,7 @@ const CategoryDetailPanel = ({
   generating: boolean;
   onDraftChange: (d: AiDraft) => void;
   onClose: () => void;
+  onRelationshipOpen: () => void;
 }) => {
   const s = CELL_STYLES[category.status];
   const missed = parseFloat(missedCycles(category));
@@ -551,12 +583,22 @@ const CategoryDetailPanel = ({
           <Send className="h-3.5 w-3.5" />
           Send via Gmail
         </button>
+
+        <button
+          onClick={onRelationshipOpen}
+          className="h-10 px-4 rounded-xl border text-xs font-bold bg-background hover:bg-muted transition-colors flex items-center gap-2"
+        >
+          <History className="h-3.5 w-3.5 text-muted-foreground" />
+          Log Activity
+        </button>
+
         <button
           onClick={onClose}
           className="h-10 px-4 rounded-xl border text-xs font-bold bg-background hover:bg-muted transition-colors"
         >
           Dismiss
         </button>
+        
         <button className="h-10 w-10 flex items-center justify-center rounded-xl border bg-background hover:bg-muted transition-colors">
           <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
         </button>
