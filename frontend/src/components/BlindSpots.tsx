@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   ScatterChart,
   Scatter,
@@ -125,6 +126,7 @@ const SalesTooltip = ({ active, payload }: any) => {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const BlindSpots = () => {
+  const { repId } = useParams();
   const [data, setData] = useState<BlindSpotItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBuyer, setSelectedBuyer] = useState<BlindSpotItem | null>(null);
@@ -132,7 +134,7 @@ const BlindSpots = () => {
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false);
 
   const fetchData = () => {
-    fetch("http://localhost:3040/api/reps/1/blind-spots")
+    fetch(`http://localhost:3040/api/reps/${repId}/blind-spots`)
       .then((r) => r.json())
       .then((d) => {
         setData(d);
@@ -143,8 +145,8 @@ const BlindSpots = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (repId) fetchData();
+  }, [repId]);
 
   if (loading) {
     return (

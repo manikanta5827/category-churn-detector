@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import {
   Sheet,
   SheetContent,
@@ -40,6 +41,7 @@ export const RelationshipSheet = ({
   buyer,
   onLogSuccess,
 }: RelationshipSheetProps) => {
+  const { repId } = useParams();
   const [history, setHistory] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState("");
@@ -49,7 +51,9 @@ export const RelationshipSheet = ({
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:3040/api/buyers/${buyer.id}/contacts`);
+      const res = await fetch(
+        `http://localhost:3040/api/buyers/${buyer.id}/contacts`,
+      );
       const data = await res.json();
       setHistory(data);
     } catch (err) {
@@ -74,7 +78,7 @@ export const RelationshipSheet = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          repId: 1, // hardcoded for demo
+          repId: Number(repId),
           buyerId: buyer.id,
           contactType: type,
           note: note.trim(),
@@ -101,8 +105,12 @@ export const RelationshipSheet = ({
               <History className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <SheetTitle className="text-lg font-black tracking-tight">{buyer.name}</SheetTitle>
-              <SheetDescription className="text-xs font-medium">Relationship Management · {buyer.city}</SheetDescription>
+              <SheetTitle className="text-lg font-black tracking-tight">
+                {buyer.name}
+              </SheetTitle>
+              <SheetDescription className="text-xs font-medium">
+                Relationship Management · {buyer.city}
+              </SheetDescription>
             </div>
           </div>
         </SheetHeader>
@@ -111,18 +119,40 @@ export const RelationshipSheet = ({
           {/* New Log Section */}
           <section className="space-y-4">
             <div className="flex items-center justify-between">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Log New Activity</h4>
-              <Badge variant="outline" className="text-[9px] font-black tracking-widest uppercase py-0 px-2 bg-background shadow-sm">Real-time Sync</Badge>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Log New Activity
+              </h4>
+              <Badge
+                variant="outline"
+                className="text-[9px] font-black tracking-widest uppercase py-0 px-2 bg-background shadow-sm"
+              >
+                Real-time Sync
+              </Badge>
             </div>
 
             <div className="grid grid-cols-3 gap-2">
-              <TypeButton active={type === "call"} icon={<Phone className="h-3.5 w-3.5" />} label="Call" onClick={() => setType("call")} />
-              <TypeButton active={type === "email"} icon={<Mail className="h-3.5 w-3.5" />} label="Email" onClick={() => setType("email")} />
-              <TypeButton active={type === "visit"} icon={<MapPin className="h-3.5 w-3.5" />} label="Visit" onClick={() => setType("visit")} />
+              <TypeButton
+                active={type === "call"}
+                icon={<Phone className="h-3.5 w-3.5" />}
+                label="Call"
+                onClick={() => setType("call")}
+              />
+              <TypeButton
+                active={type === "email"}
+                icon={<Mail className="h-3.5 w-3.5" />}
+                label="Email"
+                onClick={() => setType("email")}
+              />
+              <TypeButton
+                active={type === "visit"}
+                icon={<MapPin className="h-3.5 w-3.5" />}
+                label="Visit"
+                onClick={() => setType("visit")}
+              />
             </div>
 
             <div className="relative group">
-               <Textarea
+              <Textarea
                 placeholder={`What did you discuss during the ${type}?`}
                 className="min-h-[120px] rounded-2xl bg-muted/30 border-transparent focus:border-primary/30 transition-all resize-none p-4 text-sm"
                 value={note}
@@ -136,7 +166,11 @@ export const RelationshipSheet = ({
               disabled={!note.trim() || submitting}
               onClick={handleLog}
             >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+              {submitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-3.5 w-3.5" />
+              )}
               Save Interaction
             </Button>
           </section>
@@ -144,14 +178,21 @@ export const RelationshipSheet = ({
           {/* History Section */}
           <section className="space-y-5">
             <div className="flex items-center justify-between border-b pb-2">
-              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Past Interactions</h4>
-              <span className="text-[10px] font-bold text-muted-foreground/60">{history.length} Logs</span>
+              <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">
+                Past Interactions
+              </h4>
+              <span className="text-[10px] font-bold text-muted-foreground/60">
+                {history.length} Logs
+              </span>
             </div>
 
             {loading ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-20 rounded-2xl bg-muted/40 animate-pulse" />
+                  <div
+                    key={i}
+                    className="h-20 rounded-2xl bg-muted/40 animate-pulse"
+                  />
                 ))}
               </div>
             ) : history.length > 0 ? (
@@ -161,17 +202,28 @@ export const RelationshipSheet = ({
                   <div key={log.id} className="relative pl-12 group">
                     {/* Icon Circle */}
                     <div className="absolute left-0 top-0 h-10 w-10 rounded-xl bg-background border flex items-center justify-center shadow-sm z-10 group-hover:border-primary/40 transition-colors">
-                      {log.contactType === "call" && <Phone className="h-4 w-4 text-blue-500" />}
-                      {log.contactType === "email" && <Mail className="h-4 w-4 text-violet-500" />}
-                      {log.contactType === "visit" && <MapPin className="h-4 w-4 text-emerald-500" />}
+                      {log.contactType === "call" && (
+                        <Phone className="h-4 w-4 text-blue-500" />
+                      )}
+                      {log.contactType === "email" && (
+                        <Mail className="h-4 w-4 text-violet-500" />
+                      )}
+                      {log.contactType === "visit" && (
+                        <MapPin className="h-4 w-4 text-emerald-500" />
+                      )}
                     </div>
 
                     <div className="bg-muted/30 rounded-2xl p-4 border border-transparent hover:border-border transition-all hover:shadow-sm">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-foreground/80">{log.contactType}</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-foreground/80">
+                          {log.contactType}
+                        </span>
                         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
                           <Calendar className="h-3 w-3" />
-                          {new Date(log.contactedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                          {new Date(log.contactedAt).toLocaleDateString(
+                            undefined,
+                            { month: "short", day: "numeric", year: "numeric" },
+                          )}
                         </div>
                       </div>
                       <p className="text-xs leading-relaxed text-muted-foreground/90 font-medium italic">
@@ -184,7 +236,9 @@ export const RelationshipSheet = ({
             ) : (
               <div className="h-32 rounded-3xl border border-dashed flex flex-col items-center justify-center bg-muted/10 gap-2 opacity-60">
                 <MessageSquare className="h-6 w-6 text-muted-foreground/40" />
-                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">No history yet</p>
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest">
+                  No history yet
+                </p>
               </div>
             )}
           </section>

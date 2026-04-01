@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import type { BuyerCategoryChurnItem, Category, Status } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -67,6 +68,7 @@ const missedCycles = (cat: Category) =>
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export const CategoryChurn = () => {
+  const { repId } = useParams();
   const [data, setData] = useState<BuyerCategoryChurnItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBuyer, setSelectedBuyer] =
@@ -79,7 +81,7 @@ export const CategoryChurn = () => {
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false);
 
   const fetchData = () => {
-    fetch("http://localhost:3040/api/reps/1/category-churn")
+    fetch(`http://localhost:3040/api/reps/${repId}/category-churn`)
       .then((r) => r.json())
       .then(setData)
       .catch(console.error)
@@ -87,8 +89,8 @@ export const CategoryChurn = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (repId) fetchData();
+  }, [repId]);
 
   const fetchAiMessage = async (
     buyer: BuyerCategoryChurnItem,
@@ -98,7 +100,7 @@ export const CategoryChurn = () => {
     setAiDraft(null);
     try {
       const res = await fetch(
-        `http://localhost:3040/api/reps/1/category-churn/${buyer.id}/${cat.name}/message`,
+        `http://localhost:3040/api/reps/${repId}/category-churn/${buyer.id}/${cat.name}/message`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },

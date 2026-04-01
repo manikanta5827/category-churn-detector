@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import type { BuyerChurnItem, Status } from "../types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -75,7 +76,8 @@ const riskPercent = (b: BuyerChurnItem) =>
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export const OverallChurn = () => {
+export const AccountChurn = () => {
+  const { repId } = useParams();
   const [data, setData] = useState<BuyerChurnItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBuyer, setSelectedBuyer] = useState<BuyerChurnItem | null>(
@@ -86,7 +88,7 @@ export const OverallChurn = () => {
   const [isRelationshipOpen, setIsRelationshipOpen] = useState(false);
 
   const fetchData = () => {
-    fetch("http://localhost:3040/api/reps/1/churn")
+    fetch(`http://localhost:3040/api/reps/${repId}/churn`)
       .then((r) => r.json())
       .then(setData)
       .catch(console.error)
@@ -94,15 +96,15 @@ export const OverallChurn = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (repId) fetchData();
+  }, [repId]);
 
   const fetchAiMessage = async (buyer: BuyerChurnItem) => {
     setGenerating(true);
     setAiDraft(null);
     try {
       const res = await fetch(
-        `http://localhost:3040/api/reps/1/churn/${buyer.id}/message`,
+        `http://localhost:3040/api/reps/${repId}/churn/${buyer.id}/message`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -560,4 +562,4 @@ const StatCard = ({
   </div>
 );
 
-export default OverallChurn;
+export default AccountChurn;
