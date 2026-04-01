@@ -308,47 +308,188 @@ app.get("/api/reps/:repId/blind-spots", async ({ params }) => {
     },
   });
 
-  return buyers.map((buyer) => {
+  const now = new Date();
+
+  // ─── Contact quality weights ─────────────────────────────────────────────
+  // Visit = physically showed up, strongest relationship signal
+  // Call  = real conversation, medium signal
+  // Email = async, low effort, weakest signal
+  const CONTACT_QUALITY: Record<string, number> = {
+    visit: 10,
+    call: 6,
+    email: 3,
+  };
+
+  // ─── Step 1: Raw signals per buyer ───────────────────────────────────────
+
+  const raw = buyers.map((buyer) => {
     const orders = buyer.orders;
     const contacts = buyer.contacts;
 
-    // ── Potential Score (0-100) ──
-    // Based on: total revenue, order frequency, growth trend
-    const totalRevenue = orders.reduce((sum, o) => sum + o.amount, 0);
+    // ── Potential signals ────────────────────────────────────────────────
+
+    const totalRevenue = orders.reduce((s, o) => s + o.amount, 0);
     const orderCount = orders.length;
-    const revenueScore = Math.min(totalRevenue / 100, 50); // max 50 pts
-    const frequencyScore = Math.min(orderCount * 3, 30); // max 30 pts
+    const avgOrderSize = orderCount > 0 ? totalRevenue / orderCount : 0;
 
-    // growth trend: is last 3 orders higher than previous 3?
-    let growthScore = 0;
-    if (orders.length >= 6) {
-      const recent = orders.slice(0, 3).reduce((s, o) => s + o.amount, 0);
-      const older = orders.slice(3, 6).reduce((s, o) => s + o.amount, 0);
-      if (recent > older) growthScore = 20;
-    }
+    // Active window = days from first order to now
+    const firstOrderDate =
+      orders.length > 0 ? orders[orders.length - 1]!.orderedAt : now;
+    const activeWindowDays = Math.max(1, daysBetween(firstOrderDate, now));
 
-    const potentialScore = Math.round(
-      Math.min(revenueScore + frequencyScore + growthScore, 100),
-    );
+    // Order frequency = orders per 30 days
+    const ordersPerMonth = (orderCount / activeWindowDays) * 30;
 
-    // ── Attention Score (0-100) ──
-    // Based on: last contact, last order view, notes logged
-    const lastContact = contacts[0]?.contactedAt;
-    const lastOrder = orders[0]?.orderedAt;
+    // Growth trend: compare last 90 days revenue vs previous 90 days revenue
+    // This smooths out individual order noise and seasonal spikes
+    const ninetyDaysAgo = new Date(now);
+    ninetyDaysAgo.setDate(now.getDate() - 90);
+    const oneEightyDaysAgo = new Date(now);
+    oneEightyDaysAgo.setDate(now.getDate() - 180);
 
-    const daysSinceContact = lastContact
-      ? daysBetween(lastContact, new Date())
+    const last90Revenue = orders
+      .filter((o) => o.orderedAt >= ninetyDaysAgo)
+      .reduce((s, o) => s + o.amount, 0);
+
+    const prev90Revenue = orders
+      .filter(
+        (o) => o.orderedAt >= oneEightyDaysAgo && o.orderedAt < ninetyDaysAgo,
+      )
+      .reduce((s, o) => s + o.amount, 0);
+
+    // Growth ratio: >1 = growing, <1 = shrinking, 1 = stable
+    // If no previous data, treat as stable (1.0)
+    const growthRatio =
+      prev90Revenue > 0
+        ? last90Revenue / prev90Revenue
+        : last90Revenue > 0
+          ? 1.2 // new buyer with recent orders = positive signal
+          : 0.8; // no recent orders at all = negative signal
+
+    // ── Attention signals ────────────────────────────────────────────────
+
+    // Days since last contact of ANY type
+    const lastContactDate = contacts[0]?.contactedAt ?? null;
+    const daysSinceContact = lastContactDate
+      ? daysBetween(lastContactDate, now)
       : 999;
 
-    const daysSinceOrder = lastOrder ? daysBetween(lastOrder, new Date()) : 999;
+    // Weighted contact score = sum of quality weights for all contacts
+    // A visit counts more than 3 emails — correctly reflects rep effort
+    const weightedContactScore = contacts.reduce((total, contact) => {
+      const weight = CONTACT_QUALITY[contact.contactType] ?? 2;
+      return total + weight;
+    }, 0);
 
-    const contactScore = Math.max(0, 50 - daysSinceContact); // decays over time
-    const orderScore = Math.max(0, 30 - daysSinceOrder * 0.5);
-    const notesScore = Math.min(contacts.length * 5, 20); // max 20 pts
+    // Contact recency decay: recent contacts matter more than old ones
+    // Each contact is worth less the older it is
+    // Formula: quality_weight * e^(-days_since / 60)
+    // This means a visit 10 days ago scores much higher than a visit 90 days ago
+    const decayedContactScore = contacts.reduce((total, contact) => {
+      const weight = CONTACT_QUALITY[contact.contactType] ?? 2;
+      const daysAgo = daysBetween(contact.contactedAt, now);
+      const decayFactor = Math.exp(-daysAgo / 60); // half-life ~60 days
+      return total + weight * decayFactor;
+    }, 0);
 
-    const attentionScore = Math.round(
-      Math.min(contactScore + orderScore + notesScore, 100),
+    // Note richness: only count contacts with meaningful notes
+    // Weight by contact type — a visit note is worth more than an email note
+    const noteRichnessScore = contacts.reduce((total, contact) => {
+      const hasNote = contact.note && contact.note.trim().length > 10;
+      if (!hasNote) return total;
+      const weight = CONTACT_QUALITY[contact.contactType] ?? 2;
+      return total + weight;
+    }, 0);
+
+    // Best contact type ever used for this buyer
+    // Tells us if this rep has ever done a high-quality interaction
+    const bestContactType = contacts.reduce((best: string | null, contact) => {
+      const currentWeight = CONTACT_QUALITY[contact.contactType] ?? 0;
+      const bestWeight = best ? (CONTACT_QUALITY[best] ?? 0) : 0;
+      return currentWeight > bestWeight ? contact.contactType : best;
+    }, null);
+
+    return {
+      id: buyer.id,
+      name: buyer.name,
+      email: buyer.email,
+      city: buyer.city,
+      // potential raws
+      totalRevenue,
+      orderCount,
+      avgOrderSize,
+      ordersPerMonth,
+      growthRatio,
+      // attention raws
+      daysSinceContact,
+      weightedContactScore,
+      decayedContactScore,
+      noteRichnessScore,
+      bestContactType,
+      // for response
+      lastContactType: contacts[0]?.contactType ?? null,
+      lastContactNote: contacts[0]?.note ?? null,
+      lastOrderDate: orders[0]?.orderedAt ?? null,
+    };
+  });
+
+  // ─── Step 2: Normalise each signal across the portfolio ──────────────────
+  // Each signal is scaled relative to the best/worst in this rep's portfolio
+  // This ensures scores spread across 0–100 regardless of portfolio size
+
+  const normalise = (values: number[], invert = false): number[] => {
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const range = max - min;
+    if (range === 0) return values.map(() => 50);
+    return values.map((v) => {
+      const pct = ((v - min) / range) * 100;
+      return Math.round(invert ? 100 - pct : pct);
+    });
+  };
+
+  // Potential components
+  const normRevenue = normalise(raw.map((r) => r.totalRevenue));
+  const normAvgOrderSize = normalise(raw.map((r) => r.avgOrderSize));
+  const normOrderFrequency = normalise(raw.map((r) => r.ordersPerMonth));
+  const normGrowth = normalise(raw.map((r) => r.growthRatio));
+
+  // Attention components
+  // daysSinceContact is INVERTED — more days = less attention
+  const normContactRecency = normalise(
+    raw.map((r) => r.daysSinceContact),
+    true,
+  );
+  const normDecayedContact = normalise(raw.map((r) => r.decayedContactScore));
+  const normNoteRichness = normalise(raw.map((r) => r.noteRichnessScore));
+
+  // ─── Step 3: Weighted combination ────────────────────────────────────────
+
+  return raw.map((buyer, i) => {
+    // ── Potential Score ──
+    // Total revenue (35%): how much has this buyer spent overall
+    // Avg order size (25%): are they a high-value buyer per transaction
+    // Order frequency (25%): how regularly do they order
+    // Growth trend (15%): are they growing or shrinking
+    const potentialScore = Math.round(
+      normRevenue[i]! * 0.35 +
+        normAvgOrderSize[i]! * 0.25 +
+        normOrderFrequency[i]! * 0.25 +
+        normGrowth[i]! * 0.15,
     );
+
+    // ── Attention Score ──
+    // Decayed contact score (50%): recent high-quality contacts matter most
+    //   — a visit last week beats 10 old emails
+    // Contact recency (35%): how recently did rep touch this account at all
+    // Note richness (15%): does the rep document the relationship
+    const attentionScore = Math.round(
+      normDecayedContact[i]! * 0.5 +
+        normContactRecency[i]! * 0.35 +
+        normNoteRichness[i]! * 0.15,
+    );
+
+    const isBlindSpot = potentialScore > 50 && attentionScore < 50;
 
     return {
       id: buyer.id,
@@ -357,12 +498,14 @@ app.get("/api/reps/:repId/blind-spots", async ({ params }) => {
       city: buyer.city,
       potentialScore,
       attentionScore,
-      totalRevenue: Math.round(totalRevenue),
-      orderCount,
-      daysSinceContact,
-      lastContactType: lastContact ? contacts[0]?.contactType : null,
-      lastContactNote: lastContact ? contacts[0]?.note : null,
-      lastOrderDate: lastOrder,
+      isBlindSpot,
+      totalRevenue: Math.round(buyer.totalRevenue),
+      orderCount: buyer.orderCount,
+      daysSinceContact: buyer.daysSinceContact,
+      bestContactType: buyer.bestContactType,
+      lastContactType: buyer.lastContactType,
+      lastContactNote: buyer.lastContactNote,
+      lastOrderDate: buyer.lastOrderDate,
     };
   });
 });
@@ -385,6 +528,14 @@ app.post("/api/contacts", async ({ body }) => {
     },
   });
   return contact;
+});
+
+app.get("/api/buyers/:buyerId/contacts", async ({ params }) => {
+  const contacts = await prisma.repContact.findMany({
+    where: { buyerId: Number(params.buyerId) },
+    orderBy: { contactedAt: "desc" },
+  });
+  return contacts;
 });
 
 app.listen(3040);
