@@ -1,27 +1,92 @@
 import { useEffect, useState } from "react";
 import type { BuyerChurnItem, Status } from "../types";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, AlertCircle, Send, StickyNote, ChevronRight, Info } from "lucide-react";
+import {
+  Loader2,
+  AlertTriangle,
+  Send,
+  StickyNote,
+  ChevronRight,
+  Sparkles,
+  Clock,
+  TrendingDown,
+  CheckCircle2,
+  X,
+} from "lucide-react";
 import { buildGmailLink } from "./CategoryChurn";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type AiDraft = { subject: string; body: string };
+
+// ─── Status config ────────────────────────────────────────────────────────────
+
+const STATUS_CONFIG: Record<
+  Status,
+  {
+    dot: string;
+    badge: string;
+    badgeText: string;
+    label: string;
+    ring: string;
+    bar: string;
+  }
+> = {
+  red: {
+    dot: "bg-rose-500",
+    badge: "bg-rose-50 text-rose-600 border border-rose-200",
+    badgeText: "At Risk",
+    label: "Priority",
+    ring: "ring-rose-200",
+    bar: "bg-rose-500",
+  },
+  yellow: {
+    dot: "bg-amber-400",
+    badge: "bg-amber-50 text-amber-700 border border-amber-200",
+    badgeText: "Drifting",
+    label: "Warning",
+    ring: "ring-amber-200",
+    bar: "bg-amber-400",
+  },
+  green: {
+    dot: "bg-emerald-500",
+    badge: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    badgeText: "Healthy",
+    label: "Active",
+    ring: "ring-emerald-200",
+    bar: "bg-emerald-500",
+  },
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const overdueDays = (b: BuyerChurnItem) =>
+  Math.max(0, b.daysSinceLastOrder - b.avgCycleDays);
+
+const riskPercent = (b: BuyerChurnItem) =>
+  Math.min(
+    100,
+    Math.round((b.daysSinceLastOrder / (b.avgCycleDays * 2)) * 100),
+  );
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export const OverallChurn = () => {
   const [data, setData] = useState<BuyerChurnItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBuyer, setSelectedBuyer] = useState<BuyerChurnItem | null>(null);
-  const [aiDraft, setAiDraft] = useState<{subject: string, body: string} | null>(null);
+  const [selectedBuyer, setSelectedBuyer] = useState<BuyerChurnItem | null>(
+    null,
+  );
+  const [aiDraft, setAiDraft] = useState<AiDraft | null>(null);
   const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetch("http://localhost:3040/api/reps/1/churn")
-      .then((res) => res.json())
+      .then((r) => r.json())
       .then(setData)
-      .catch(err => console.error("Error fetching churn data:", err))
+      .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
@@ -29,7 +94,7 @@ export const OverallChurn = () => {
     setGenerating(true);
     setAiDraft(null);
     try {
-      const response = await fetch(
+      const res = await fetch(
         `http://localhost:3040/api/reps/1/churn/${buyer.id}/message`,
         {
           method: "POST",
@@ -40,157 +105,186 @@ export const OverallChurn = () => {
           }),
         },
       );
-      const result = await response.json();
-      if (result.error) {
-        alert(result.error);
-      } else {
-        setAiDraft(result);
-      }
+      const result = await res.json();
+      if (!result.error) setAiDraft(result);
     } catch (err) {
-      console.error("Error generating AI message:", err);
+      console.error(err);
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleBuyerClick = (buyer: BuyerChurnItem) => {
+  const handleOpen = (buyer: BuyerChurnItem) => {
     if (buyer.status === "green") return;
     setSelectedBuyer(buyer);
+    setAiDraft(null);
     fetchAiMessage(buyer);
   };
 
+  const redCount = data.filter((b) => b.status === "red").length;
+  const yellowCount = data.filter((b) => b.status === "yellow").length;
+
+  // ── Loading skeleton ──────────────────────────────────────────────────────
+
   if (loading) {
     return (
-      <div className="space-y-4">
-        {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-16 w-full rounded-lg" />)}
+      <div className="space-y-3 animate-pulse">
+        <div className="h-24 rounded-2xl bg-muted/60" />
+        {[...Array(5)].map((_, i) => (
+          <Skeleton key={i} className="h-[72px] w-full rounded-xl" />
+        ))}
       </div>
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="px-1">
-        <h2 className="text-xl font-bold tracking-tight">Overall Churn</h2>
-        <p className="text-sm text-muted-foreground font-medium">
-          <span className="text-red-500 font-bold">{data.filter(b => b.status === "red").length} buyers</span> are at high risk of churning
-        </p>
+    <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* ── Summary banner ── */}
+      <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-5 shadow-sm">
+        <h2 className="text-base font-semibold tracking-tight mb-3">
+          Buyer Health Overview
+        </h2>
+        <div className="flex items-center gap-6">
+          <StatPill
+            icon={<TrendingDown className="h-3.5 w-3.5" />}
+            value={redCount}
+            label="At Risk"
+            color="text-rose-600 bg-rose-50 border-rose-200"
+          />
+          <StatPill
+            icon={<Clock className="h-3.5 w-3.5" />}
+            value={yellowCount}
+            label="Drifting"
+            color="text-amber-600 bg-amber-50 border-amber-200"
+          />
+          <StatPill
+            icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+            value={data.filter((b) => b.status === "green").length}
+            label="Healthy"
+            color="text-emerald-600 bg-emerald-50 border-emerald-200"
+          />
+        </div>
       </div>
 
-      <div className="border rounded-xl overflow-hidden divide-y divide-border/50 bg-card shadow-sm">
-        {data.map((buyer) => (
-          <div 
-            key={buyer.id} 
-            className={`flex items-center justify-between p-5 transition-all ${buyer.status !== "green" ? "hover:bg-muted/30 cursor-pointer active:scale-[0.99]" : "opacity-70"}`}
-            onClick={() => handleBuyerClick(buyer)}
-          >
-            <div className="flex items-center gap-4">
-              <StatusIndicator status={buyer.status} />
-              <div>
-                <span className="font-bold text-sm">{buyer.name}</span>
-                <p className="text-[10px] text-muted-foreground mt-0.5 font-medium tracking-tight">
-                  Last order: {buyer.daysSinceLastOrder} days ago · {buyer.city}
+      {/* ── Buyer list ── */}
+      <div className="rounded-2xl border overflow-hidden shadow-sm divide-y divide-border/40 bg-card">
+        {data.map((buyer, i) => {
+          const cfg = STATUS_CONFIG[buyer.status];
+          const pct = riskPercent(buyer);
+          const clickable = buyer.status !== "green";
+
+          return (
+            <div
+              key={buyer.id}
+              style={{ animationDelay: `${i * 40}ms` }}
+              className={[
+                "animate-in fade-in slide-in-from-left-1 duration-300",
+                "relative flex items-center gap-4 px-5 py-4 transition-all",
+                clickable
+                  ? "hover:bg-muted/40 cursor-pointer active:scale-[0.995]"
+                  : "opacity-60",
+              ].join(" ")}
+              onClick={() => handleOpen(buyer)}
+            >
+              {/* risk bar on left edge */}
+              {clickable && (
+                <div
+                  className={`absolute left-0 top-0 bottom-0 w-[3px] ${cfg.bar} opacity-70 rounded-r-full`}
+                />
+              )}
+
+              {/* dot */}
+              <div className="relative shrink-0">
+                <div className={`w-2.5 h-2.5 rounded-full ${cfg.dot}`} />
+                {buyer.status === "red" && (
+                  <div
+                    className={`absolute inset-0 rounded-full ${cfg.dot} animate-ping opacity-40`}
+                  />
+                )}
+              </div>
+
+              {/* buyer info */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="font-semibold text-sm truncate">
+                    {buyer.name}
+                  </span>
+                  <span
+                    className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full border ${cfg.badge}`}
+                  >
+                    {cfg.badgeText}
+                  </span>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {buyer.city} · Last order{" "}
+                  <span className="font-medium text-foreground/70">
+                    {buyer.daysSinceLastOrder}d ago
+                  </span>{" "}
+                  · Avg cycle{" "}
+                  <span className="font-medium text-foreground/70">
+                    {buyer.avgCycleDays}d
+                  </span>
                 </p>
+
+                {/* progress bar */}
+                {clickable && (
+                  <div className="mt-2 h-1 w-full max-w-[180px] bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${cfg.bar} rounded-full transition-all duration-700`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* right side */}
+              <div className="flex items-center gap-3 shrink-0">
+                {buyer.status !== "green" && (
+                  <div className="text-right">
+                    <p
+                      className={`text-xs font-bold ${
+                        buyer.status === "red"
+                          ? "text-rose-500"
+                          : "text-amber-600"
+                      }`}
+                    >
+                      +{overdueDays(buyer)}d overdue
+                    </p>
+                    <p className="text-[9px] text-muted-foreground uppercase tracking-wide mt-0.5">
+                      overdue
+                    </p>
+                  </div>
+                )}
+                {clickable && (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+                )}
               </div>
             </div>
-            <div className="flex items-center gap-5">
-              <div className="text-right">
-                <span className={`text-xs font-bold ${
-                  buyer.status === "red" ? "text-red-500" : 
-                  buyer.status === "yellow" ? "text-yellow-600" : "text-green-600"
-                }`}>
-                  {buyer.status === "red" ? "Priority" : 
-                   buyer.status === "yellow" ? "Warning" : "Active"}
-                </span>
-                <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tight mt-0.5">
-                  Avg {buyer.avgCycleDays}d
-                </p>
-              </div>
-              {buyer.status !== "green" && <ChevronRight className="h-4 w-4 text-muted-foreground opacity-40" />}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <Dialog open={!!selectedBuyer} onOpenChange={(open) => !open && setSelectedBuyer(null)}>
-        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-xl">
+      {/* ── Detail dialog ── */}
+      <Dialog
+        open={!!selectedBuyer}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedBuyer(null);
+            setAiDraft(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[460px] p-0 overflow-hidden rounded-2xl gap-0 border-0 shadow-2xl">
           {selectedBuyer && (
-            <div className="flex flex-col">
-              <div className="p-6 border-b bg-muted/30">
-                <div className="flex items-center gap-2 mb-4">
-                  <StatusIndicator status={selectedBuyer.status} />
-                  <h3 className="text-lg font-bold tracking-tight">Account Warning: {selectedBuyer.name}</h3>
-                </div>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-xs">
-                  <div>
-                    <p className="text-muted-foreground mb-1 uppercase tracking-tighter font-bold text-[9px]">Last ordered</p>
-                    <p className="font-semibold">{selectedBuyer.daysSinceLastOrder} days ago</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground mb-1 uppercase tracking-tighter font-bold text-[9px]">Usual pattern</p>
-                    <p className="font-semibold">Every {selectedBuyer.avgCycleDays} days</p>
-                  </div>
-                  <div className="col-span-2 bg-red-50 dark:bg-red-900/20 p-2.5 rounded-lg flex items-center gap-3 border border-red-100 dark:border-red-900/40">
-                    <AlertCircle className="h-4 w-4 text-red-500" />
-                    <span className="text-red-700 dark:text-red-400 font-bold text-xs">
-                      Overdue by {Math.max(0, selectedBuyer.daysSinceLastOrder - selectedBuyer.avgCycleDays)} days
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 space-y-5">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-3.5 rounded-lg flex gap-3 border border-blue-100 dark:border-blue-900/40">
-                  <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
-                  <p className="text-[12px] text-blue-800 dark:text-blue-300 leading-relaxed">
-                    <strong>AI Insight:</strong> Buyer has significantly exceeded their normal reorder frequency. High probability of competitive switching.
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Draft outreach</p>
-                  {generating ? (
-                    <div className="h-[140px] flex flex-col items-center justify-center border rounded-lg bg-muted/10">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary mb-2" />
-                      <span className="text-[9px] uppercase font-bold tracking-widest opacity-50">Synthesizing...</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <input 
-                        className="w-full text-xs font-bold p-2.5 bg-muted/40 border-none rounded-lg focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
-                        value={aiDraft?.subject || ""}
-                        onChange={(e) => setAiDraft(prev => prev ? { ...prev, subject: e.target.value } : null)}
-                        placeholder="Subject"
-                      />
-                      <Textarea 
-                        className="min-h-[120px] text-xs leading-relaxed bg-muted/40 border-none rounded-lg p-3 resize-none focus-visible:ring-1 focus-visible:ring-primary/20 transition-all"
-                        value={aiDraft?.body || ""}
-                        onChange={(e) => setAiDraft(prev => prev ? { ...prev, body: e.target.value } : null)}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="p-5 bg-muted/30 border-t flex gap-3">
-                <button 
-                  className="flex-1 h-10 rounded-lg bg-primary text-primary-foreground text-xs font-bold shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                  onClick={() => {
-                    if (aiDraft && selectedBuyer) {
-                      window.open(buildGmailLink(selectedBuyer.email, aiDraft.subject, aiDraft.body), "_blank");
-                    }
-                  }}
-                  disabled={!aiDraft}
-                >
-                  <Send className="h-3 w-3" /> Send via Gmail
-                </button>
-                <button className="h-10 px-4 rounded-lg border border-input bg-background text-xs font-bold" onClick={() => setSelectedBuyer(null)}>
-                  Dismiss
-                </button>
-                <button className="h-10 w-10 flex items-center justify-center rounded-lg border border-input bg-background">
-                  <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              </div>
-            </div>
+            <BuyerDetailPanel
+              buyer={selectedBuyer}
+              aiDraft={aiDraft}
+              generating={generating}
+              onDraftChange={setAiDraft}
+              onClose={() => setSelectedBuyer(null)}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -198,13 +292,222 @@ export const OverallChurn = () => {
   );
 };
 
-const StatusIndicator = ({ status }: { status: Status }) => {
-  const colors = {
-    red: "bg-red-500",
-    yellow: "bg-yellow-500",
-    green: "bg-green-500"
-  };
-  return <div className={`w-2 h-2 rounded-full ${colors[status]} shadow-sm`} />;
+// ─── Buyer detail panel ───────────────────────────────────────────────────────
+
+const BuyerDetailPanel = ({
+  buyer,
+  aiDraft,
+  generating,
+  onDraftChange,
+  onClose,
+}: {
+  buyer: BuyerChurnItem;
+  aiDraft: AiDraft | null;
+  generating: boolean;
+  onDraftChange: (d: AiDraft) => void;
+  onClose: () => void;
+}) => {
+  const cfg = STATUS_CONFIG[buyer.status];
+  const overdue = overdueDays(buyer);
+
+  return (
+    <div className="flex flex-col max-h-[90vh]">
+      {/* Header */}
+      <div className="relative p-6 pb-5 bg-gradient-to-br from-muted/60 to-background border-b">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted transition-colors"
+        >
+          <X className="h-4 w-4 text-muted-foreground" />
+        </button>
+
+        <div className="flex items-center gap-2.5 mb-4">
+          <div className="relative">
+            <div className={`w-3 h-3 rounded-full ${cfg.dot}`} />
+            {buyer.status === "red" && (
+              <div
+                className={`absolute inset-0 rounded-full ${cfg.dot} animate-ping opacity-40`}
+              />
+            )}
+          </div>
+          <div>
+            <h3 className="font-bold text-base leading-tight">{buyer.name}</h3>
+            <p className="text-[11px] text-muted-foreground mt-0.5">
+              {buyer.city} · {buyer.email}
+            </p>
+          </div>
+        </div>
+
+        {/* Stat grid */}
+        <div className="grid grid-cols-3 gap-3">
+          <StatCard
+            label="Last Order"
+            value={`${buyer.daysSinceLastOrder}d ago`}
+            accent={buyer.status === "red"}
+          />
+          <StatCard label="Avg Cycle" value={`${buyer.avgCycleDays}d`} />
+          <StatCard
+            label="Overdue"
+            value={overdue > 0 ? `+${overdue}d` : "On track"}
+            accent={overdue > 0}
+          />
+        </div>
+
+        {/* Risk bar */}
+        <div className="mt-4">
+          <div className="flex justify-between text-[10px] text-muted-foreground mb-1.5 font-medium">
+            <span>Churn risk</span>
+            <span>{riskPercent(buyer)}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+            <div
+              className={`h-full ${cfg.bar} rounded-full transition-all duration-1000`}
+              style={{ width: `${riskPercent(buyer)}%` }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* AI draft section */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+        {/* AI insight pill */}
+        <div className="flex items-start gap-2.5 bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/40 rounded-xl p-3.5">
+          <AlertTriangle className="h-4 w-4 text-violet-500 shrink-0 mt-0.5" />
+          <p className="text-[11.5px] text-violet-800 dark:text-violet-300 leading-relaxed">
+            Buyer has exceeded their normal reorder cycle by{" "}
+            <strong>{overdue} days</strong>. High probability of competitive
+            switching — reach out now.
+          </p>
+        </div>
+
+        {/* Draft label */}
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            AI-drafted outreach
+          </p>
+          <div className="flex items-center gap-1 text-[10px] text-violet-500 font-semibold">
+            <Sparkles className="h-3 w-3" />
+            <span>Generated</span>
+          </div>
+        </div>
+
+        {generating ? (
+          <div className="h-[160px] flex flex-col items-center justify-center rounded-xl border bg-muted/20 gap-3">
+            <div className="relative">
+              <Loader2 className="h-5 w-5 animate-spin text-violet-400" />
+              <div className="absolute inset-0 blur-md bg-violet-400/30 rounded-full" />
+            </div>
+            <div className="space-y-1 text-center">
+              <p className="text-[11px] font-semibold text-muted-foreground">
+                Writing personalised message
+              </p>
+              <p className="text-[10px] text-muted-foreground/60">
+                Analysing buyer history...
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <input
+              className="w-full text-xs font-semibold px-3 py-2.5 bg-muted/40 rounded-lg border-transparent border focus:border-violet-300 focus:bg-background outline-none transition-all"
+              placeholder="Subject line..."
+              value={aiDraft?.subject ?? ""}
+              onChange={(e) =>
+                aiDraft &&
+                onDraftChange({ ...aiDraft, subject: e.target.value })
+              }
+            />
+            <Textarea
+              className="min-h-[120px] text-[12px] leading-relaxed bg-muted/40 rounded-lg border-transparent focus:border-violet-300 focus:bg-background p-3 resize-none outline-none transition-all"
+              placeholder="Message body..."
+              value={aiDraft?.body ?? ""}
+              onChange={(e) =>
+                aiDraft && onDraftChange({ ...aiDraft, body: e.target.value })
+              }
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Footer actions */}
+      <div className="p-4 border-t bg-muted/20 flex gap-2.5">
+        <button
+          disabled={!aiDraft || generating}
+          onClick={() => {
+            if (aiDraft) {
+              window.open(
+                buildGmailLink(buyer.email, aiDraft.subject, aiDraft.body),
+                "_blank",
+              );
+            }
+          }}
+          className={[
+            "flex-1 h-10 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-sm",
+            aiDraft && !generating
+              ? "bg-violet-600 hover:bg-violet-700 text-white shadow-violet-200"
+              : "bg-muted text-muted-foreground cursor-not-allowed",
+          ].join(" ")}
+        >
+          <Send className="h-3.5 w-3.5" />
+          Send via Gmail
+        </button>
+
+        <button
+          onClick={onClose}
+          className="h-10 px-4 rounded-xl border text-xs font-bold bg-background hover:bg-muted transition-colors"
+        >
+          Dismiss
+        </button>
+
+        <button className="h-10 w-10 flex items-center justify-center rounded-xl border bg-background hover:bg-muted transition-colors">
+          <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+      </div>
+    </div>
+  );
 };
+
+// ─── Small reusable pieces ────────────────────────────────────────────────────
+
+const StatPill = ({
+  icon,
+  value,
+  label,
+  color,
+}: {
+  icon: React.ReactNode;
+  value: number;
+  label: string;
+  color: string;
+}) => (
+  <div
+    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold ${color}`}
+  >
+    {icon}
+    <span className="text-base font-black leading-none">{value}</span>
+    <span className="font-medium opacity-80">{label}</span>
+  </div>
+);
+
+const StatCard = ({
+  label,
+  value,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+}) => (
+  <div className="rounded-xl bg-background/80 border p-3 text-center">
+    <p
+      className={`text-sm font-black leading-none ${accent ? "text-rose-500" : ""}`}
+    >
+      {value}
+    </p>
+    <p className="text-[9px] uppercase tracking-wider text-muted-foreground mt-1.5 font-semibold">
+      {label}
+    </p>
+  </div>
+);
 
 export default OverallChurn;
