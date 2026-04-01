@@ -318,7 +318,7 @@ export const CategoryChurn = () => {
       {/* Summary banner */}
       <div className="rounded-2xl border bg-gradient-to-br from-card to-muted/20 p-5 shadow-sm">
         <h2 className="text-base font-semibold tracking-tight mb-1">
-          Category Churn
+          Abandoned Category
         </h2>
         <p className="text-[12px] text-muted-foreground mb-3">
           Buyers who are still active — but silently abandoning product
@@ -600,7 +600,7 @@ const CategoryDetailPanel = ({
         >
           Dismiss
         </button>
-        
+
         <button className="h-10 w-10 flex items-center justify-center rounded-xl border bg-background hover:bg-muted transition-colors">
           <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
         </button>

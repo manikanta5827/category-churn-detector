@@ -157,7 +157,7 @@ Return ONLY valid JSON, no markdown, no extra text:
   },
 );
 
-// ─── FEATURE 2: Category Churn (buyer list) ──────
+// ─── FEATURE 2: Abandoned Category (buyer list) ──────
 app.get("/api/reps/:repId/category-churn", async ({ params }) => {
   const buyers = await prisma.buyer.findMany({
     where: { repId: Number(params.repId) },

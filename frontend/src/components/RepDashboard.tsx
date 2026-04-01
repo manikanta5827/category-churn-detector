@@ -32,7 +32,7 @@ export default function RepDashboard() {
   return (
     <div className="animate-in fade-in duration-700">
       <div className="mb-10 flex flex-col items-center text-center space-y-4">
-        <button 
+        <button
           onClick={() => navigate("/")}
           className="flex items-center gap-2 px-4 py-2 rounded-2xl border bg-background hover:bg-muted transition-all text-[10px] font-black uppercase tracking-widest active:scale-95"
         >
@@ -48,43 +48,57 @@ export default function RepDashboard() {
             </h2>
           </div>
           <p className="text-muted-foreground text-[13px] font-medium max-w-[440px] mx-auto leading-relaxed">
-            Real-time analysis of account health, category abandonment, and portfolio blind spots.
+            Real-time analysis of account health, category abandonment, and
+            portfolio blind spots.
           </p>
         </div>
       </div>
 
-      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-10">
+      <Tabs
+        value={currentTab}
+        onValueChange={handleTabChange}
+        className="space-y-10"
+      >
         <div className="flex justify-center sticky top-20 z-40 bg-background/80 backdrop-blur-sm py-2 rounded-2xl -mx-4 px-4 border border-transparent hover:border-border/20 transition-all">
-          <TabsList className="h-11 p-1 bg-muted/60 border rounded-2xl w-full max-w-sm shadow-sm">
-            <TabsTrigger 
-              value="account" 
+          <TabsList className="h-11 p-1 bg-muted/60 border rounded-2xl w-full max-w-md shadow-sm">
+            <TabsTrigger
+              value="account"
               className="rounded-xl px-6 text-[11px] font-bold uppercase tracking-tight data-[state=active]:shadow-md transition-all"
             >
               Account Churn
             </TabsTrigger>
-            <TabsTrigger 
-              value="category" 
+            <TabsTrigger
+              value="category"
               className="rounded-xl px-6 text-[11px] font-bold uppercase tracking-tight data-[state=active]:shadow-md transition-all"
             >
-              Category Churn
+              Abandoned Category
             </TabsTrigger>
-            <TabsTrigger 
-              value="blind" 
+            <TabsTrigger
+              value="blind"
               className="rounded-xl px-6 text-[11px] font-bold uppercase tracking-tight data-[state=active]:shadow-md transition-all"
             >
               Blind Spots
             </TabsTrigger>
           </TabsList>
         </div>
-        
+
         <div className="mt-8">
-          <TabsContent value="account" className="focus-visible:outline-none outline-none ring-0">
+          <TabsContent
+            value="account"
+            className="focus-visible:outline-none outline-none ring-0"
+          >
             <AccountChurn />
           </TabsContent>
-          <TabsContent value="category" className="focus-visible:outline-none outline-none ring-0">
+          <TabsContent
+            value="category"
+            className="focus-visible:outline-none outline-none ring-0"
+          >
             <CategoryChurn />
           </TabsContent>
-          <TabsContent value="blind" className="focus-visible:outline-none outline-none ring-0">
+          <TabsContent
+            value="blind"
+            className="focus-visible:outline-none outline-none ring-0"
+          >
             <BlindSpots />
           </TabsContent>
         </div>
