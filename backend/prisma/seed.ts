@@ -38,8 +38,8 @@ async function main() {
     return d;
   };
 
-  // ─── Buyers (15) ──────────────────────────────
-  console.log("Creating 15 buyers...");
+  // ─── Buyers (16) ──────────────────────────────
+  console.log("Creating 16 buyers...");
   const buyerData = [
     { name: "Rustic Home Goods", email: "sarah@rustichome.com", city: "Chicago" },
     { name: "Midwest Gifts", email: "tom@midwestgifts.com", city: "Detroit" },
@@ -56,6 +56,7 @@ async function main() {
     { name: "Grand Avenue Gifts", email: "sam@grandave.com", city: "St. Paul" },
     { name: "Lakeside Living", email: "nina@lakeside.com", city: "Cleveland" },
     { name: "Modern Midwest", email: "alex@modernmidwest.com", city: "Kansas City" },
+    { name: "Old Town Boutique", email: "helen@oldtown.com", city: "Chicago" }, // 🚩 Risk Buyer
   ];
 
   const createdBuyers = await Promise.all(
@@ -64,11 +65,21 @@ async function main() {
     }))
   );
 
-  // ─── Orders (approx 60) ────────────────────────
+  // ─── Orders ───────────────────────────────────
   console.log("Creating dense order data...");
   const orderEntries: any[] = [];
 
   createdBuyers.forEach((buyer, index) => {
+    if (buyer.name === "Old Town Boutique") {
+        // High frequency history (every 10 days) but STOPPED 60 days ago
+        // This will force it into the 'red' status
+        orderEntries.push({ buyerId: buyer.id, categoryId: catMap["Candles"].id, amount: 450, orderedAt: daysAgo(60) });
+        orderEntries.push({ buyerId: buyer.id, categoryId: catMap["Candles"].id, amount: 420, orderedAt: daysAgo(70) });
+        orderEntries.push({ buyerId: buyer.id, categoryId: catMap["Candles"].id, amount: 480, orderedAt: daysAgo(80) });
+        orderEntries.push({ buyerId: buyer.id, categoryId: catMap["Candles"].id, amount: 400, orderedAt: daysAgo(90) });
+        return;
+    }
+
     // Each buyer gets 3-5 categories they buy from
     const buyerCats = categories.slice(index % 5, (index % 5) + 4);
     
@@ -92,7 +103,7 @@ async function main() {
 
   await prisma.order.createMany({ data: orderEntries });
 
-  // ─── Rep Contacts (approx 20) ──────────────────
+  // ─── Rep Contacts ──────────────────────────────
   console.log("Creating rep contact history...");
   const contactEntries: any[] = [];
   const contactTypes = ["call", "email", "visit"];
@@ -108,12 +119,12 @@ async function main() {
     });
 
     // Extra contacts for churned-looking ones
-    if (index % 3 === 0) {
+    if (index % 3 === 0 || buyer.name === "Old Town Boutique") {
       contactEntries.push({
         repId: rep.id,
         buyerId: buyer.id,
         contactType: "call",
-        note: `Attempted to discuss recent drop in orders.`,
+        note: `Attempted to discuss recent drop in orders and check inventory levels.`,
         contactedAt: daysAgo(2 + Math.random() * 5)
       });
     }
